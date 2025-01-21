@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
+    "entryPoint": "expo-router/entry",
     "host": "localhost",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

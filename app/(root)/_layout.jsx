@@ -15,8 +15,8 @@ const AppLayout = () => {
     }
 
     if (!isLoggedIn) {
-        console.warn('User not logged in, redirecting to /signin');
-        return <Redirect href="/signin" />;
+        // console.warn('User not logged in, redirecting to /signin');
+        return <Redirect href="/signin" />; // /signin will come here
     }
 
     return <Slot />;
