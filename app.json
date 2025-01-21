@@ -6,10 +6,15 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
+    "host": "localhost",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.investor.land",
+      "associatedDomains": [
+        "applinks:your-server.com"
+      ]
     },
     "android": {
       "adaptiveIcon": {
