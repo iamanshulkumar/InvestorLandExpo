@@ -1,17 +1,34 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import React from 'react';
 import { Link } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import images from '@/constants/images';
+import icons from '@/constants/icons';
+import Search from '@/components/Search';
 
 const Index = () => {
     return (
-        <View style={styles.container}>
-            <Text style={styles.heading}>Welcome to Investor Land</Text>
-            <Link href="/signin" style={styles.link}>SignInn</Link>
-            <Link href="/login" style={styles.link}>Login</Link>
-            <Link href="/explore" style={styles.link}>Explore</Link>
-            <Link href="/profile" style={styles.link}>Profile</Link>
-            <Link href="/properties/1" style={styles.link}>Property</Link>
-        </View>
+        <SafeAreaView className='bg-white h-full'>
+            <View className='px-5'>
+                <View className='flex flex-row items-center justify-between mt-5'>
+                    <View className='flex flex-row items-center ml-2 justify-center'>
+                        <Image source={images.avatar} className='size-12 rounded-full' />
+
+                        <View className='flex flex-col items-start ml-2 justify-center'>
+                            <Text className='text-xs font-rubik text-black-100'>
+                                Good Morning
+                            </Text>
+                            <Text className='text-base font-rubik-medium text-black-300'>
+                                User
+                            </Text>
+                        </View>
+                    </View>
+                    <Image source={icons.bell} className='size-6' />
+                </View>
+            </View>
+
+            <Search />
+        </SafeAreaView>
     );
 };
 
@@ -20,17 +37,6 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    heading: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        fontFamily: 'Rubik-Bold', // Ensure this font is loaded
-    },
-    link: {
-        fontSize: 18,
-        color: '#007AFF',
-        marginVertical: 10,
     },
 });
 

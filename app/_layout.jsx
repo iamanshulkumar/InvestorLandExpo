@@ -3,7 +3,7 @@ import { useFonts } from "expo-font";
 import { useEffect } from "react";
 import GlobalProvider from "@/lib/global-provider";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import './globals.css';
 export default function RootLayout() {
     const [fontsLoaded] = useFonts({
         "Rubik-Bold": require("../assets/fonts/Rubik-Bold.ttf"),
