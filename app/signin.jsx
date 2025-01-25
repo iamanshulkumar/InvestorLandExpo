@@ -10,48 +10,38 @@ import {
   TextInput
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Redirect, Link } from 'expo-router';
-import { login } from "@/lib/appwrite";
+import { Link, useRouter } from 'expo-router';
+
 import images from '@/constants/images';
 import icons from '@/constants/icons';
-import { useGlobalContext } from '@/lib/global-provider';
 
 
 const Signin = () => {
-  const { refetch, loading, isLoggedIn } = useGlobalContext();
 
-  // Redirect the user if logged in
-  if (!loading && isLoggedIn) {
-    return <Redirect href="/" />;
-  }
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loadingg, setLoadingg] = useState(false);
+  const router = useRouter(); // Initialize the router for navigation  
 
-  const handleLogin = async () => {
+  const emaillogin = async () => {
+
+    setLoadingg(true); // Show loading indicator
     try {
-      console.log('Login attempt started');
-      const result = await login();
-
-      if (result) {
-        console.log('Login successful');
+      // Validate dummy credentials
+      if (email === 'admin' && password === 'admin') {
+        Alert.alert('Success', 'Login successful!');
         refetch();
+        router.push('/'); // Redirect to home page
       } else {
-        Alert.alert('Error', 'Failed to log in');
+        Alert.alert('Error', 'Invalid username or password');
       }
     } catch (error) {
       Alert.alert('Error', 'An unexpected error occurred');
       console.error(error);
+    } finally {
+      setLoadingg(false); // Hide loading indicator
     }
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#FFA500" />
-      </SafeAreaView>
-    );
   }
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
@@ -130,7 +120,7 @@ const Signin = () => {
             onChangeText={setPassword}
           />
           <TouchableOpacity
-            onPress={handleLogin}
+            onPress={emaillogin}
             style={{
               backgroundColor: '#FFA500',
               borderRadius: 5,
@@ -163,7 +153,7 @@ const Signin = () => {
           </Text>
 
           <TouchableOpacity
-            onPress={handleLogin}
+            onPress={() => console.log('Google login')}
             style={{
               backgroundColor: '#FFF',
               shadowColor: '#999',
@@ -207,6 +197,19 @@ const Signin = () => {
               Don't have an account? Register now
             </Text>
           </Link>
+          <Link href="/profile" style={{ marginTop: 20, alignItems: 'center' }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontFamily: 'Rubik-Regular',
+                color: '#00000',
+                textAlign: 'center',
+              }}
+            >
+              Profile
+            </Text>
+          </Link>
+
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -3,7 +3,7 @@ import * as  Linking from 'expo-linking';
 import { openAuthSessionAsync } from "expo-web-browser";
 import { Alert } from 'react-native';
 export const config = {
-    platform: 'com.investor.land',
+    platform: 'com.investor.investorland',
     endpoint: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT,
     projectId: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID,
 }

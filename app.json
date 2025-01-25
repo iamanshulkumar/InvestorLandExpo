@@ -5,14 +5,14 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "investorland",
     "entryPoint": "expo-router/entry",
     "host": "localhost",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.investor.land",
+      "bundleIdentifier": "com.investor.investorland",
       "associatedDomains": [
         "applinks:your-server.com"
       ]
@@ -21,15 +21,20 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff",
-        "package": "com.investor.land"
-      }
+        "package": "com.investor.investorland"
+      },
+      "package": "com.investor.investorland"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "plugins": [
       "expo-router",
       [
@@ -57,6 +62,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "b9b062d0-380c-4ab0-8b80-cb450a9dc58a"
+      }
     }
   }
 }
