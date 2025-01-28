@@ -1,12 +1,12 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, FlatList } from 'react-native';
 import React from 'react';
-import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import images from '@/constants/images';
 import icons from '@/constants/icons';
 import Search from '@/components/Search';
 import { Card, FeaturedCard } from '@/components/Cards';
 import Filters from '@/components/Filters';
+import { Link } from 'expo-router';
 
 
 const Index = () => {
@@ -37,7 +37,9 @@ const Index = () => {
                                     </Text>
                                 </View>
                             </View>
-                            <Image source={icons.bell} className='size-6' />
+                            <Link href={'/property'}>
+                                <Image source={icons.bell} className='size-6' />
+                            </Link>
                         </View>
 
                         <Search />
