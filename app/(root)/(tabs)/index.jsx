@@ -6,17 +6,19 @@ import icons from '@/constants/icons';
 import Search from '@/components/Search';
 import { Card, FeaturedCard } from '@/components/Cards';
 import Filters from '@/components/Filters';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 
 
 const Index = () => {
+
+    const handleCardPress = (id) => router.push(`/properties/${id}`);
 
     return (
         <SafeAreaView className='bg-white h-full'>
 
             <FlatList
                 data={[1, 2, 3, 4]}
-                renderItem={({ item }) => <Card />}
+                renderItem={({ item }) => <Card item={item} onPress={() => handleCardPress(item)} />}
                 keyExtractor={(item) => item.toString()}
                 numColumns={2}
                 contentContainerClassName="pb-32"
@@ -37,7 +39,7 @@ const Index = () => {
                                     </Text>
                                 </View>
                             </View>
-                            <Link href={'/property'}>
+                            <Link href={'/notifications'}>
                                 <Image source={icons.bell} className='size-6' />
                             </Link>
                         </View>
@@ -54,7 +56,7 @@ const Index = () => {
 
                         <FlatList
                             data={[1, 2]}
-                            renderItem={({ item }) => <FeaturedCard />}
+                            renderItem={({ item }) => <FeaturedCard item={item} onPress={() => handleCardPress(item)} />}
                             keyExtractor={(item) => item.toString()}
                             horizontal
                             bounces={false}

@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Image, ImageSourcePropType, Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
 
 import icons from "@/constants/icons";
 
@@ -66,16 +66,7 @@ const TabsLayout = () => {
                     ),
                 }}
             />
-            <Tabs.Screen
-                name="property"
-                options={{
-                    title: "property",
-                    headerShown: false,
-                    tabBarIcon: ({ focused }) => (
-                        <TabIcon focused={focused} icon={icons.star} title="Property" />
-                    ),
-                }}
-            />
+            
         </Tabs>
     );
 };
