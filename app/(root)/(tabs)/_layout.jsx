@@ -66,6 +66,16 @@ const TabsLayout = () => {
                     ),
                 }}
             />
+            <Tabs.Screen
+                name="addproperty"
+                options={{
+                    title: "Profile",
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => (
+                        <TabIcon focused={focused} icon={icons.addproperty} title="Add Property" />
+                    ),
+                }}
+            />
             
         </Tabs>
     );
