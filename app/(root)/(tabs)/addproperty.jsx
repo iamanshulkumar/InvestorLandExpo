@@ -3,9 +3,9 @@ import React, { useState, useRef } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import icons from '@/constants/icons';
 import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
-import Textarea from 'react-native-textarea';
 import * as ImagePicker from 'expo-image-picker';
 import RNPickerSelect from 'react-native-picker-select';
+import { Link, router } from 'expo-router';
 
 const Addproperty = () => {
     const [step1Data, setStep1Data] = useState({ name: '', description: '' });
@@ -43,6 +43,22 @@ const Addproperty = () => {
         }
     };
 
+    const [videos, setVideos] = useState([]);
+
+    const pickVideo = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+            allowsEditing: true,
+            quality: 1,
+        });
+
+        console.log(result);
+
+        if (!result.canceled) {
+            setVideos([...videos, result.assets[0]]);
+        }
+    };
+
     const buttonTextStyle = {
         paddingInline: 20,
         paddingBlock: 5,
@@ -59,103 +75,98 @@ const Addproperty = () => {
         { label: 'Luxury House', value: 'Luxury House' },
         { label: 'Bunglow', value: 'Bunglow' },
     ];
+    const status = [
+        { label: 'Unpublished', value: 'Unpublished' },
+        { label: 'Published', value: 'Published' },
+    ];
 
     return (
-        <SafeAreaView className='bg-white h-full px-5'>
-            <View className='flex flex-row items-center ml-2 justify-between'>
-                <TouchableOpacity onPress={() => router.back()} className="flex flex-row bg-primary-200 rounded-full size-11 items-center justify-center" >
-                    <Image source={icons.backArrow} className='size-5' />
+        <SafeAreaView style={{ backgroundColor: 'white', height: '100%', paddingHorizontal: 20 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10, justifyContent: 'space-between' }}>
+                <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', backgroundColor: '#E0E0E0', borderRadius: 50, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                    <Image source={icons.backArrow} style={{ width: 20, height: 20 }} />
                 </TouchableOpacity>
-                <Text className='text-base mr-2 text-center font-rubik-medium text-black-300'>
+                <Text style={{ fontSize: 16, marginRight: 10, textAlign: 'center', fontFamily: 'Rubik-Medium', color: '#4A4A4A' }}>
                     Add New Property
                 </Text>
-                <Image source={icons.bell} className='size-6' />
+                <Link href={'/notifications'}>
+                    <Image source={icons.bell} className='size-6' />
+                </Link>
             </View>
-
             <View style={styles.container}>
                 <ProgressSteps>
                     <ProgressStep label="General" nextBtnTextStyle={buttonTextStyle}>
                         <View style={styles.stepContent}>
                             <Text style={styles.label}>Property Name</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter property name"
-                                value={step1Data.name}
-                                onChangeText={text => setStep1Data({ ...step1Data, name: text })}
-                            />
-
+                            <TextInput style={styles.input} placeholder="Enter property name" value={step1Data.name} onChangeText={text => setStep1Data({ ...step1Data, name: text })} />
                             <Text style={styles.label}>Property Description</Text>
-                            <TextInput
-                                style={styles.textarea}
-                                value={step1Data.description}
-                                onChangeText={text => setStep1Data({ ...step1Data, description: text })}
-                                maxLength={120}
-                                placeholder="Enter property description"
-                                multiline
-                                numberOfLines={5}
-                            />
-
-
+                            <TextInput style={styles.textarea} value={step1Data.description} onChangeText={text => setStep1Data({ ...step1Data, description: text })} maxLength={120} placeholder="Enter property description" multiline numberOfLines={5} />
                             <Text style={styles.label}>Property Thumbnail</Text>
                             {image && <Image source={{ uri: image }} style={styles.image} />}
                             <TouchableOpacity onPress={pickImage} style={styles.dropbox}>
-                                <Text className="text-center">Pick an image from gallery</Text>
+                                <Text style={{ textAlign: 'center' }}>Pick an image from gallery</Text>
                             </TouchableOpacity>
 
                             <Text style={styles.label}>Select category</Text>
-                            <RNPickerSelect
-                                onValueChange={(value) => setSelectedValue(value)}
-                                items={categories}
-                                style={pickerSelectStyles}
-                                placeholder={{ label: 'Choose an option...', value: null }}
-                            />
-
+                            <RNPickerSelect onValueChange={(value) => setSelectedValue(value)} items={categories} style={pickerSelectStyles} placeholder={{ label: 'Choose an option...', value: null }} />
                         </View>
                     </ProgressStep>
-
                     <ProgressStep label="Details" nextBtnTextStyle={buttonTextStyle} previousBtnTextStyle={buttonTextStyle}>
+                        <View>
+                            <Text style={{ textAlign: 'center', fontFamily: 'Rubik-Bold' }}>Pricing & Other Details</Text>
+                        </View>
                         <View style={styles.stepContent}>
-                            <Text style={styles.label}>Email</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Email"
-                                value={step2Data.email}
-                                onChangeText={text => setStep2Data({ ...step2Data, email: text })}
-                            />
-                            <Text style={styles.label}>Username</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Username"
-                                value={step2Data.username}
-                                onChangeText={text => setStep2Data({ ...step2Data, username: text })}
-                            />
+                            <Text style={styles.label}>Property Price</Text>
+                            <TextInput style={styles.input} placeholder="Property Price" value={step2Data.email} onChangeText={text => setStep2Data({ ...step2Data, Price: text })} />
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <View style={{ flex: 1, marginRight: 5 }}>
+                                    <Text style={styles.label}>Square Foot</Text>
+                                    <TextInput style={styles.input} placeholder="Square Foot" value={step2Data.username} onChangeText={text => setStep2Data({ ...step2Data, squarefoot: text })} />
+                                </View>
+                                <View style={{ flex: 1, marginLeft: 5 }}>
+                                    <Text style={styles.label}>Bathroom</Text>
+                                    <TextInput style={styles.input} placeholder="Bathroom" value={step2Data.username} onChangeText={text => setStep2Data({ ...step2Data, Bathroom: text })} />
+                                </View>
+                            </View>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <View style={{ flex: 1, marginRight: 5 }}>
+                                    <Text style={styles.label}>Floor</Text>
+                                    <TextInput style={styles.input} placeholder="Floor" value={step2Data.username} onChangeText={text => setStep2Data({ ...step2Data, Floor: text })} />
+                                </View>
+                                <View style={{ flex: 1, marginLeft: 5 }}>
+                                    <Text style={styles.label}>City</Text>
+                                    <TextInput style={styles.input} placeholder="Enter City" value={step2Data.username} onChangeText={text => setStep2Data({ ...step2Data, City: text })} />
+                                </View>
+                            </View>
+                            <Text style={styles.label}>Property Address</Text>
+                            <TextInput style={styles.textarea} placeholder="Property Address" value={step2Data.username} onChangeText={text => setStep2Data({ ...step2Data, Address: text })} multiline numberOfLines={5} maxLength={120} />
                         </View>
                     </ProgressStep>
-
                     <ProgressStep label="Documents" nextBtnTextStyle={buttonTextStyle} previousBtnTextStyle={buttonTextStyle}>
+                        <Text style={styles.label}>Property Gallery</Text>
+                        {image && <Image source={{ uri: image }} style={styles.image} />}
+                        <TouchableOpacity onPress={pickImage} style={styles.dropbox}>
+                            <Text style={{ textAlign: 'center' }}>Pick an image from gallery</Text>
+                        </TouchableOpacity>
                         <View style={styles.stepContent}>
-                            <Text style={styles.label}>Password</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Password"
-                                secureTextEntry={true}
-                                value={step3Data.password}
-                                onChangeText={text => setStep3Data({ ...step3Data, password: text })}
-                            />
-                            <Text style={styles.label}>Retype Password</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Retype Password"
-                                secureTextEntry={true}
-                                value={step3Data.retypePassword}
-                                onChangeText={text => setStep3Data({ ...step3Data, retypePassword: text })}
-                            />
+                            <Text style={styles.label}>Select Status</Text>
+                            <RNPickerSelect onValueChange={(value) => setSelectedValue(value)} items={status} style={pickerSelectStyles} placeholder={{ label: 'Choose an option...', value: null }} />
+                        </View>
+                        <View style={styles.stepContent}>
+                            <Text style={styles.label}>Upload Videos</Text>
+                            <TouchableOpacity onPress={pickVideo} style={styles.dropbox}>
+                                <Text style={{ textAlign: 'center' }}>Pick videos from gallery</Text>
+                            </TouchableOpacity>
+                            {videos.length > 0 && videos.map((video, index) => (
+                                <View key={index} style={styles.videoContainer}>
+                                    <Text>{video.uri}</Text>
+                                </View>
+                            ))}
                         </View>
                     </ProgressStep>
                 </ProgressSteps>
             </View>
         </SafeAreaView>
-
     )
 }
 

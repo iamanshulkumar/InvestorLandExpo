@@ -69,37 +69,28 @@ export const categories = [
 
 export const settings = [
   {
-    title: "My Bookings",
-    icon: icons.calendar,
-  },
-  {
-    title: "Payments",
-    icon: icons.wallet,
-  },
-  {
     title: "Profile",
     icon: icons.person,
+    onPress: '/dashboard/editprofile',
+  },
+  {
+    title: "My Properties",
+    icon: icons.shield,
+    onPress: '/dashboard/myproperties',
+
   },
   {
     title: "Notifications",
     icon: icons.bell,
+    onPress: '/notifications',
+
   },
   {
-    title: "Security",
-    icon: icons.shield,
+    title: "Add New Property",
+    icon: icons.addproperty,
+    onPress: '/addproperty',
   },
-  {
-    title: "Language",
-    icon: icons.language,
-  },
-  {
-    title: "Help Center",
-    icon: icons.info,
-  },
-  {
-    title: "Invite Friends",
-    icon: icons.people,
-  },
+
 ];
 
 export const facilities = [

@@ -57,19 +57,19 @@ const TabsLayout = () => {
                 }}
             />
             <Tabs.Screen
-                name="profile"
+                name="dashboard"
                 options={{
-                    title: "Profile",
+                    title: "Dashboard",
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
-                        <TabIcon focused={focused} icon={icons.person} title="Profile" />
+                        <TabIcon focused={focused} icon={icons.person} title="Dashboard" />
                     ),
                 }}
             />
             <Tabs.Screen
                 name="addproperty"
                 options={{
-                    title: "Profile",
+                    title: "Add Property",
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
                         <TabIcon focused={focused} icon={icons.addproperty} title="Add Property" />
