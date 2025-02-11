@@ -1,11 +1,15 @@
-import { ScrollView, StyleSheet, Text, View, SafeAreaView, Image, TouchableOpacity, TextInput, ActivityIndicator, Alert, Linking } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, SafeAreaView, Image, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import images from '@/constants/images';
 import icons from '@/constants/icons';
+import * as IntentLauncher from 'expo-intent-launcher';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { router } from 'expo-router';
 import axios from 'axios';
+import * as Linking from 'expo-linking';
+import * as FileSystem from 'expo-file-system';
+
 
 const EditProfile = () => {
     const [image, setImage] = useState(null);
@@ -14,29 +18,57 @@ const EditProfile = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [companyName, setCompanyName] = useState('');
     const [usertype, setUsertype] = useState('');
-    const [companyDoc, setCompanyDoc] = useState(null);
+    const [companyDocs, setCompanyDocs] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [userId, setUserId] = useState(null);
 
     // Fetch existing profile data
     useEffect(() => {
         const fetchProfileData = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get('https://investorlands.com/api/userprofile?id=6');
+                const userId = 4; // Replace with actual user ID from auth
+                const response = await axios.get(`https://investorlands.com/api/userprofile?id=${userId}`);
                 const data = response.data.data;
                 console.log(data);
+                setUserId(data.id);
                 setUsername(data.name);
                 setUsertype(data.user_type);
                 setEmail(data.email);
                 setPhoneNumber(data.mobile);
                 setCompanyName(data.company_name);
-                setCompanyDoc(data.company_document);
 
                 // If profile_photo_path exists, prepend the base URL
                 if (data.profile_photo_path) {
-                    setImage(`https://investorlands.com/assets/images/Users/${data.profile_photo_path}`);
+                    if (data.profile_photo_path.startsWith('http')) {
+                        setImage(data.profile_photo_path);
+                    } else {
+                        setImage(`https://investorlands.com/assets/images/Users/${data.profile_photo_path}`);
+                    }
                 } else {
-                    setImage(null);
+                    setImage(images.avatar);
+                }
+
+                // Handle company_documents (single or multiple)
+                if (data.company_documents || data.company_document) {
+                    let docsArray = [];
+
+                    if (Array.isArray(data.company_documents)) {
+                        docsArray = data.company_documents;
+                    } else if (typeof data.company_documents === 'string') {
+                        docsArray = data.company_documents.includes(',')
+                            ? data.company_documents.split(',')
+                            : [data.company_documents];
+                    } else if (typeof data.company_document === 'string') {
+                        docsArray = [data.company_document];
+                    }
+
+                    const formattedDocs = docsArray.map(doc => ({
+                        uri: `https://investorlands.com/assets/images/Users/${doc.trim()}`,
+                        name: doc.trim(),
+                    }));
+
+                    setCompanyDocs(formattedDocs);
                 }
             } catch (error) {
                 console.error('Error fetching profile data:', error);
@@ -47,6 +79,7 @@ const EditProfile = () => {
 
         fetchProfileData();
     }, []);
+
 
 
     // Handle image selection
@@ -70,57 +103,107 @@ const EditProfile = () => {
                 type: '*/*',
                 copyToCacheDirectory: true,
             });
-
             if (result.type === 'success') {
-                setCompanyDoc(result);
+                setCompanyDocs(prevDocs => [...prevDocs, result]);
             }
         } catch (error) {
             console.error('Error picking document:', error);
         }
     };
 
-    // Handle profile update submission
+
+    const downloadAndOpenFile = async (fileUri, fileName) => {
+        if (!fileUri || !fileName) {
+            Alert.alert('Error', 'Invalid file URL or file name.');
+            return;
+        }
+
+        try {
+            const downloadResumable = FileSystem.createDownloadResumable(
+                fileUri,
+                FileSystem.documentDirectory + fileName
+            );
+
+            const { uri } = await downloadResumable.downloadAsync();
+            console.log('Downloaded file to:', uri);
+
+            if (Platform.OS === 'android') {
+                const contentUri = await FileSystem.getContentUriAsync(uri);
+                IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+                    data: contentUri,
+                    flags: 1,
+                    type: 'application/pdf',
+                });
+            } else if (Platform.OS === 'ios') {
+                await Linking.openURL(uri);
+            } else {
+                Alert.alert('Unsupported Platform', 'This feature is only supported on Android and iOS.');
+            }
+        } catch (error) {
+            console.error('Download error:', error);
+            Alert.alert('Error', 'Failed to download and open the document.');
+        }
+    };
+
+
+
     const handleSubmit = async () => {
         setLoading(true);
-
+    
         try {
             const formData = new FormData();
             formData.append('name', username);
             formData.append('email', email);
             formData.append('mobile', phoneNumber);
             formData.append('company_name', companyName);
-
-
+    
+            // ✅ Upload Image Only If It's New
             if (image && !image.startsWith('http')) {
-                formData.append('image', {
+                formData.append('profile_photo', {
                     uri: image,
                     name: 'profile.jpg',
                     type: 'image/jpeg',
                 });
             }
-
-            if (companyDoc && companyDoc.uri) {
-                formData.append('companyDoc', {
-                    uri: companyDoc.uri,
-                    name: companyDoc.name || 'document.pdf',
-                    type: companyDoc.mimeType || 'application/pdf',
-                });
-            }
-
-            await axios.put('https://investorlands.com/api/userprofile', formData, {
+    
+            // ✅ Upload Only New Documents
+            companyDocs.forEach((doc, index) => {
+                if (doc.uri && !doc.uri.startsWith('http')) {
+                    const fileType = doc.mimeType || 'application/pdf';
+                    const fileName = doc.name || `document_${index + 1}.pdf`;
+    
+                    formData.append(`company_documents[${index}]`, {
+                        uri: doc.uri,
+                        name: fileName,
+                        type: fileType,
+                    });
+                }
+            });
+    
+            const response = await axios.post(`https://investorlands.com/api/updateuserprofile/${userId}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-
-            Alert.alert('Success', 'Profile updated successfully!');
+    
+            if (response.status === 200) {
+                Alert.alert('Success', 'Profile updated successfully!');
+            } else {
+                throw new Error('Unexpected server response.');
+            }
         } catch (error) {
             console.error('Error updating profile:', error);
-            Alert.alert('Error', 'Failed to update profile. Please try again.');
+    
+            if (error.response) {
+                Alert.alert('Server Error', error.response.data.message || 'Something went wrong on the server.');
+            } else {
+                Alert.alert('Network Error', 'Please check your internet connection and try again.');
+            }
         } finally {
             setLoading(false);
         }
     };
+    
 
     return (
         <SafeAreaView style={styles.container}>
@@ -154,27 +237,34 @@ const EditProfile = () => {
 
                         <Text style={styles.label}>Phone Number</Text>
                         <TextInput style={styles.input} value={phoneNumber} onChangeText={setPhoneNumber} placeholder="Enter phone number" />
-
-                        <Text style={styles.label}>Company Name</Text>
-                        <TextInput style={styles.input} value={companyName} onChangeText={setCompanyName} placeholder="Enter company name" />
-
-                        <Text style={styles.label}>Company Document</Text>
-                        {companyDoc ? (
+                        {usertype === 'agent' && (
                             <View>
-                                <Text>{companyDoc.split('/').pop()}</Text>
-                                <TouchableOpacity
-                                    onPress={() => Linking.openURL(`https://investorlands.com/assets/images/Users/${companyDoc}`)}
-                                    style={styles.dropbox}
-                                >
-                                    <Text style={styles.downloadText}>Download Company Document</Text>
+                                <Text style={styles.label}>Company Name</Text>
+                                <TextInput style={styles.input} value={companyName} onChangeText={setCompanyName} placeholder="Enter company name" />
+
+                                <Text style={styles.label}>Company Documents</Text>
+                                {companyDocs.length > 0 ? (
+                                    companyDocs.map((doc, index) => {
+                                        const fileName = doc.name.length > 10 ? `${doc.name.substring(0, 10)}...` : doc.name;
+                                        const fileExtension = doc.name.split('.').pop();
+                                        return (
+                                            <View key={index} style={styles.docItem}>
+                                                <Text>{fileName}.{fileExtension}</Text>
+                                                <TouchableOpacity onPress={() => downloadAndOpenFile(doc.uri, doc.name)} style={styles.dropbox}>
+                                                    <Text style={styles.downloadText}>Download</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        );
+                                    })
+                                ) : (
+                                    <Text>No documents available</Text>
+                                )}
+
+                                <TouchableOpacity onPress={pickDocument} style={styles.dropbox}>
+                                    <Text style={styles.downloadText}>Add Company Document</Text>
                                 </TouchableOpacity>
                             </View>
-                        ) : (
-                            <TouchableOpacity onPress={pickDocument} style={styles.dropbox}>
-                                <Text style={styles.downloadText}>Select Company Document</Text>
-                            </TouchableOpacity>
                         )}
-
                     </View>
                 </ScrollView>
             )}
@@ -241,10 +331,18 @@ const styles = StyleSheet.create({
         marginVertical: 5,
     },
     input: {
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#edf5ff',
         borderRadius: 8,
         padding: 10,
         marginBottom: 10,
+    },
+    docItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ccc',
     },
     dropbox: {
         backgroundColor: '#e0e0e0',
