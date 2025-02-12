@@ -90,7 +90,7 @@ const Search = () => {
                         </TouchableOpacity>
                         <Text className="text-lg font-bold text-black-300">Filter</Text>
                         <TouchableOpacity onPress={() => refRBSheet.current.close()} className="p-2">
-                            <Text className="text-base font-bold text-primary-300">Reset</Text>
+                            <Text className="text-base font-bold text-yellow-800">Reset</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -128,7 +128,7 @@ const Search = () => {
                             <Text className="text-lg font-bold text-black-300">Property Type</Text>
                             <View className="flex flex-row items-center justify-start mt-2 flex-wrap">
                             {categories.map((item, index) => (
-                                <TouchableOpacity key={index} onPress={() => handleCategoryPress(item.category)} className={`flex flex-col items-start mr-4 px-4 py-2 my-1 rounded-full ${selectedCategory == item.category ? 'bg-primary-300' : 'bg-primary-100 border border-primary-200'} `}>
+                                <TouchableOpacity key={index} onPress={() => handleCategoryPress(item.category)} className={`flex flex-col items-start mr-4 px-4 py-2 my-1 rounded-full ${selectedCategory == item.category ? 'bg-yellow-800' : 'bg-primary-100 border border-primary-200'} `}>
                                     <Text className={`text-sm ${selectedCategory == item.category ? 'text-white font-rubik-bold mt-0.5' : 'text-black-300 font-rubik'} `}>{item.title}</Text>
                                 </TouchableOpacity>
                             ))}

@@ -110,7 +110,7 @@ const PropertyDetails = () => {
 
                     <View className='flex flex-row items-center gap-3'>
                         <View className='flex flex-row items-center px-4 py-2 bg-primary-100 rounded-full'>
-                            <Text className='text-xs font-rubik-bold text-primary-300'>Condo</Text>
+                            <Text className='text-xs font-rubik-bold text-yellow-800'>Condo</Text>
                         </View>
 
                         <View className='flex flex-row items-center gap-2'>
@@ -270,7 +270,7 @@ const PropertyDetails = () => {
                                 </View>
 
                                 <TouchableOpacity>
-                                    <Text className="text-primary-300 text-base font-rubik-bold">
+                                    <Text className="text-yellow-800 text-base font-rubik-bold">
                                         View All
                                     </Text>
                                 </TouchableOpacity>
@@ -293,13 +293,13 @@ const PropertyDetails = () => {
                         </Text>
                         <Text
                             numberOfLines={1}
-                            className="text-primary-300 text-start text-2xl font-rubik-bold"
+                            className="text-yellow-800 text-start text-2xl font-rubik-bold"
                         >
                             $54321
                         </Text>
                     </View>
 
-                    <TouchableOpacity className="flex-1 flex flex-row items-center justify-center bg-primary-300 py-3 rounded-full shadow-md shadow-zinc-400">
+                    <TouchableOpacity className="flex-1 flex flex-row items-center justify-center bg-yellow-800 py-3 rounded-full shadow-md shadow-zinc-400">
                         <Text className="text-white text-lg text-center font-rubik-bold">
                             Book Now
                         </Text>

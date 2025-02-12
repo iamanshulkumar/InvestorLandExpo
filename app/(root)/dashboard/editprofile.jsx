@@ -216,7 +216,7 @@ const EditProfile = () => {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#007bff" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color="#8a4c00" style={{ marginTop: 50 }} />
             ) : (
                 <ScrollView showsVerticalScrollIndicator={false}>
                     <View style={styles.profileImageContainer}>
@@ -352,10 +352,10 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     downloadText: {
-        color: '#007bff',
+        color: '#8a4c00',
     },
     submitButton: {
-        backgroundColor: '#007bff',
+        backgroundColor: '#8a4c00',
         padding: 15,
         borderRadius: 8,
         alignItems: 'center',

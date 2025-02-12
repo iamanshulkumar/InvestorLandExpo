@@ -7,7 +7,7 @@ import Search from '@/components/Search';
 import { Card, FeaturedCard } from '@/components/Cards';
 import Filters from '@/components/Filters';
 import { Link, router } from 'expo-router';
-
+import { Colors } from '@/constants/Colors';
 
 const Index = () => {
 
@@ -28,7 +28,10 @@ const Index = () => {
                     <View className='px-5'>
                         <View className='flex flex-row items-center justify-between mt-5'>
                             <View className='flex flex-row items-center ml-2 justify-center'>
-                                <Image source={images.avatar} className='size-12 rounded-full' />
+                                <Link href={'/dashboard'}>
+                                    <Image source={images.avatar} className='size-12 rounded-full' />
+                                </Link>
+                                
 
                                 <View className='flex flex-col items-start ml-2 justify-center'>
                                     <Text className='text-xs font-rubik text-black-100'>
@@ -39,9 +42,19 @@ const Index = () => {
                                     </Text>
                                 </View>
                             </View>
-                            <Link href={'/notifications'}>
+                            <TouchableOpacity onPress={() => router.push('/signin')}>
+                                    <Text className='text-base font-rubik-medium text-black-300'>
+                                        Login
+                                    </Text>
+                                </TouchableOpacity>
+                            <TouchableOpacity onPress={() => router.push('/signup')}>
+                                    <Text className='text-base font-rubik-medium text-black-300'>
+                                        SignUp
+                                    </Text>
+                                </TouchableOpacity>
+                            <TouchableOpacity onPress={() => router.push('/notifications')}>
                                 <Image source={icons.bell} className='size-6' />
-                            </Link>
+                            </TouchableOpacity>
                         </View>
 
                         <Search />
@@ -49,7 +62,7 @@ const Index = () => {
                             <View className='flex flex-row items-center justify-between'>
                                 <Text className='text-xl font-rubik-bold text-black-300'>Featured</Text>
                                 <TouchableOpacity>
-                                    <Text className='text-base font-rubik-bold text-primary-300'>See All</Text>
+                                    <Text className='text-base font-rubik-bold' style={{ color: Colors.brown }}>See All</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -69,7 +82,7 @@ const Index = () => {
                             <View className='flex flex-row items-center justify-between'>
                                 <Text className='text-xl font-rubik-bold text-black-300'>Our Recommendation</Text>
                                 <TouchableOpacity>
-                                    <Text className='text-base font-rubik-bold text-primary-300'>See All</Text>
+                                    <Text className='text-base font-rubik-bold text-yellow-800' style={{ color: Colors.brown }}>See All</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>

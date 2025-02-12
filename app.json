@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "InvestorLand",
-    "slug": "InvestorLand",
+    "name": "InvestorLands",
+    "slug": "InvestorLands",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/mainlogo.jpeg",
     "scheme": "investorland",
     "entryPoint": "expo-router/entry",
     "host": "localhost",
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/icon.jpeg",
         "backgroundColor": "#ffffff",
         "package": "com.investor.investorland"
       },
@@ -28,7 +28,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.jpeg"
     },
     "platforms": [
       "ios",
@@ -40,7 +40,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/icon.png",
+          "image": "./assets/images/mainlogo.jpeg",
           "resizeMode": "cover",
           "backgroundColor": "#ffffff",
           "enableFullScreenImage_legacy": true

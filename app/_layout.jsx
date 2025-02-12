@@ -1,6 +1,7 @@
-import { SplashScreen, Stack } from "expo-router";
+import { SplashScreen, Stack, useRouter } from "expo-router";
 import { useFonts } from "expo-font";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import './globals.css';
 
 export default function RootLayout() {
@@ -13,13 +14,38 @@ export default function RootLayout() {
         "Rubik-SemiBold": require("../assets/fonts/Rubik-SemiBold.ttf"),
     });
 
+    const [appIsReady, setAppIsReady] = useState(false);
+    const router = useRouter();
+
     useEffect(() => {
-        if (fontsLoaded) {
-            SplashScreen.hideAsync();
-        }
+        const prepareApp = async () => {
+            try {
+                await SplashScreen.preventAutoHideAsync();
+
+                if (fontsLoaded) {
+                    const token = await AsyncStorage.getItem("userToken");
+
+                    // Delay navigation until Root Layout is mounted
+                    requestAnimationFrame(() => {
+                        if (token) {
+                            router.replace("/"); // Redirect if logged in
+                        } else {
+                            router.replace("/signin"); // Redirect if not logged in
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Error during auth check:", error);
+            } finally {
+                setAppIsReady(true);
+                await SplashScreen.hideAsync();
+            }
+        };
+
+        prepareApp();
     }, [fontsLoaded]);
 
-    if (!fontsLoaded) { return null; }
+    if (!appIsReady) return null;
 
-    return <Stack screenOptions={{ headerShown: false }}/>;
+    return <Stack screenOptions={{ headerShown: false }} />;
 }
