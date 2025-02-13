@@ -46,7 +46,7 @@ const Signin = () => {
         await AsyncStorage.setItem('userToken', data.token);
         await AsyncStorage.setItem('userData', JSON.stringify(data.data));
   
-        Alert.alert('Success', data.message || 'Login successful!');
+        // Alert.alert('Success', data.message || 'Login successful!');
         router.push('/'); // Redirect to dashboard
       } else {
         Alert.alert('Login Failed', data.message || 'Invalid credentials');
@@ -119,7 +119,7 @@ const Signin = () => {
 
           <Link href="/signup" style={styles.registerLink}>
             <Text style={styles.registerText}>
-              Don't have an account? <Text style={{ color: '#FFA500' }}>Register now</Text>
+              Don't have an account? <Text style={{ color: '#854d0e' }}>Register now</Text>
             </Text>
           </Link>
         </View>
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   highlight: {
-    color: '#FFA500',
+    color: '#854d0e',
   },
   subtitle: {
     fontSize: 18,
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Rubik-Regular',
   },
   loginButton: {
-    backgroundColor: '#FFA500',
+    backgroundColor: '#854d0e',
     borderRadius: 25,
     paddingVertical: 14,
     alignItems: 'center',

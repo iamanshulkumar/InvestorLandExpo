@@ -1,14 +1,111 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+import { StyleSheet, Text, TouchableOpacity, View, Image, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Link, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import images from '@/constants/images';
+import icons from '@/constants/icons';
 
 const Myproperties = () => {
+  const [userPropertyData, setUserPropertyData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const handleCardPress = (id) => router.push(`/properties/${id}`);
+  const handleEditPress = (id) => router.push(`/dashboard/editproperties/${id}`);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      setLoading(true);
+      try {
+        const parsedPropertyData = JSON.parse(await AsyncStorage.getItem('userData'));
+
+        // Fetch user properties from API
+        const response = await axios.get(`https://investorlands.com/api/viewuserlistings?id=${parsedPropertyData.id}`);
+        // console.log('API Response:', response.data);
+
+        if (response.data && response.data.properties) {
+          const formattedData = response.data.properties.map((item) => ({
+            id: item.id,
+            property_name: item.property_name,
+            address: item.address,
+            price: item.price,
+            status: item.status,
+            category: item.category,
+            thumbnail: item.thumbnail.startsWith('http')
+              ? item.thumbnail
+              : `https://investorlands.com/assets/images/Listings/${item.thumbnail}`,
+            city: item.city, // Limit to 10 words
+          }));
+
+          setUserPropertyData(formattedData);
+        } else {
+          console.error('Unexpected API response format:', response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   return (
-    <View>
-      <Text>Myproperties</Text>
-    </View>
-  )
-}
+    <SafeAreaView className="bg-white h-full px-4">
+      <View className="flex-row items-center ml-2 justify-between">
+        <TouchableOpacity onPress={() => router.back()} className="flex-row bg-gray-300 rounded-full w-11 h-11 items-center justify-center">
+          <Image source={icons.backArrow} className="w-5 h-5" />
+        </TouchableOpacity>
+        <Text className="text-lg mr-2 text-center font-medium text-gray-700">My Properties</Text>
+        <TouchableOpacity onPress={() => router.push('/notifications')}>
+          <Image source={icons.bell} className='size-6' />
+        </TouchableOpacity>
+      </View>
 
-export default Myproperties
+      <View className="mt-3 mb-12">
+        {loading ? (
+          <Text className="text-center text-gray-500 mt-10">Loading properties...</Text>
+        ) : userPropertyData.length === 0 ? (
+          <Text className="text-center text-gray-500 mt-10">No properties found.</Text>
+        ) : (
+          <FlatList
+            data={userPropertyData}
+            keyExtractor={(item) => item.id.toString()}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <TouchableOpacity className="flex-row my-2 p-3 rounded-lg border border-gray-100" onPress={() => handleCardPress(item.id)}>
+                {/* Property Image */}
+                <View className="w-24 h-24 overflow-hidden rounded-lg border border-gray-300">
+                  <Image source={item.thumbnail ? { uri: item.thumbnail } : images.newYork} className="w-full h-full object-cover" />
+                </View>
 
-const styles = StyleSheet.create({})
+                {/* Property Details */}
+                <View className="ml-4 flex-1">
+                  <View className="flex-row justify-between mt-2">
+                    <Text className="text-md font-medium text-gray-900">{item.property_name}</Text>
+                    <Text className={`inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-medium ring-1 ring-inset ${item.status === 'published' ? ' bg-green-50  text-green-700  ring-green-600/20 ' : 'bg-red-50  text-red-700 ring-red-600/20'}`}>{item.status}</Text>
+                  </View>
+                  <Text className="text-sm font-semibold text-gray-700">{item.address}</Text>
+                  <Text className="text-sm text-gray-500 mt-1">{item.city}</Text>
+                  <View className="flex-row justify-between mt-2">
+                    <Text className="text-sm font-semibold text-gray-700">{item.category}</Text>
+                    <Text className="text-sm font-semibold text-gray-700">₹{item.price}</Text>
+                    <TouchableOpacity onPress={() => handleEditPress(item.id)}>
+                      <Text className="inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-medium ring-1 ring-inset bg-gray-50  text-gray-600 ring-gray-500/10">Edit</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default Myproperties;
+
+const styles = StyleSheet.create({});

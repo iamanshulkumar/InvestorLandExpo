@@ -1,70 +1,63 @@
-import { View, Text, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import images from '@/constants/images';
 import icons from '@/constants/icons';
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { settings } from '@/constants/data';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Updated SettingsItem to handle both navigation and functions
-const SettingsItem = ({ title, icon, onPress, textStyle, showArrow = true }) => {
-  const router = useRouter();
-
-  const handlePress = () => {
-    if (typeof onPress === 'string') {
-      router.push(onPress); // Navigate if it's a path
-    } else if (typeof onPress === 'function') {
-      onPress(); // Execute function directly
-    }
-  };
-
-  return (
-    <TouchableOpacity className="flex flex-row items-center justify-between py-3" onPress={handlePress}>
-      <View className="flex flex-row items-center gap-3">
-        <Image source={icon} className="size-6" />
-        <Text className={`text-lg font-rubik-medium text-black-300 ${textStyle}`}>{title}</Text>
-      </View>
-      {showArrow && <Image source={icons.rightArrow} className="size-5" />}
-    </TouchableOpacity>
-  );
-};
+import axios from 'axios';
 
 const Dashboard = () => {
-  const [userToken, setUserToken] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [image, setImage] = useState(images.avatar); // Default avatar
 
-  // Fetch user token and data from AsyncStorage
   useEffect(() => {
     const fetchUserData = async () => {
+      setLoading(true);
       try {
-        const token = await AsyncStorage.getItem('userToken');
-        const user = await AsyncStorage.getItem('userData');
+        const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
 
-        if (token && user) {
-          console.log('User Token:', token);
-          console.log('User Data:', JSON.parse(user));
+        // Fetch user data from API
+        const response = await axios.get(`https://investorlands.com/api/userprofile?id=${parsedUserData.id}`);
+        // console.log('API Response:', response.data);
 
-          setUserToken(token);
-          setUserData(JSON.parse(user));
+        if (response.data && response.data.data) {
+          const apiData = response.data.data;
+          setUserData(apiData);
+
+          // Set Profile Image, ensuring fallback to default avatar
+          if (apiData.profile_photo_path) {
+            setImage(
+              apiData.profile_photo_path.startsWith('http')
+                ? apiData.profile_photo_path
+                : `https://investorlands.com/assets/images/Users/${apiData.profile_photo_path}`
+            );
+          } else {
+            setImage(images.avatar);
+          }
         } else {
-          console.log('No user data found.');
+          console.error('Unexpected API response format:', response.data);
+          setImage(images.avatar);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
+        setImage(images.avatar);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUserData();
   }, []);
 
-  // Logout Function
   const handleLogout = async () => {
     try {
-      await AsyncStorage.clear(); // Clear all stored data
+      await AsyncStorage.clear();
       Alert.alert('Logged Out', 'You have been logged out successfully.');
-      router.push('/signin'); // Redirect to sign-in screen
+      router.push('/signin');
     } catch (error) {
       console.error('Error during logout:', error);
     }
@@ -72,54 +65,64 @@ const Dashboard = () => {
 
   return (
     <SafeAreaView>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerClassName="pb-32 px-7"
-      >
-        <View className="flex flex-row items-center justify-center mt-5">
-          <Text className="text-xl font-rubik-bold">User Dashboard</Text>
-        </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-32 px-7">
+        {loading ? (
+          <ActivityIndicator size="large" color="#8a4c00" style={{ marginTop: 50 }} />
+        ) : (
+          <View>
+            <View className="flex flex-row items-center justify-between my-5">
+              <Text className="text-xl font-rubik-bold upper">Dashboard</Text>
 
-        <View className="flex flex-row justify-center mt-5">
-          <View className="flex flex-col items-center relative mt-5">
-            <Image source={images.avatar} className="size-44 relative rounded-full" />
-            <Text className="text-2xl font-rubik-bold mt-2">
-              {userData ? userData.name : 'User'}
-            </Text>
-            {userData && (
-              <>
-                <Text className="text-sm text-gray-500 mt-1">
-                  Email: {userData.email}
+              <TouchableOpacity onPress={() => router.back()} className="flex-row bg-gray-300 rounded-full w-11 h-11 items-center justify-center">
+                <Image source={icons.backArrow} className="w-5 h-5" />
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex flex-row items-center ml-2 justify-start">
+              <Image
+                source={typeof image === 'string' ? { uri: image } : image}
+                className="size-12 rounded-full"
+              />
+              <View className="flex flex-col items-start ml-2 justify-center">
+                <Text className="text-2xl font-rubik-bold mt-2 text-yellow-800 capitalize">
+                  {userData?.name || 'User'}
                 </Text>
-                <Text className="text-sm text-gray-500">
-                  Mobile: {userData.mobile}
-                </Text>
-              </>
-            )}
+                {userData && (
+                  <View>
+                    <Text className="text-black">Email: {userData.email || 'N/A'}</Text>
+                    <Text className="text-black">Mobile: {userData.mobile || 'N/A'}</Text>
+                    <Text className="text-black capitalize">Role: {userData.user_type || 'N/A'}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View className="flex flex-col mt-10 border-t pt-5 border-primary-200">
+              <TouchableOpacity onPress={() => router.push('/dashboard/editprofile')} className="flex flex-row items-center py-3">
+                <Image source={icons.person} className="size-6" />
+                <Text className="text-lg font-rubik-medium text-black-300 ml-3">Edit Profile</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex flex-col mt-5 border-t pt-5 border-primary-200">
+              {settings.slice(1).map((item, index) => (
+                <TouchableOpacity key={index} onPress={() => router.push(item.onPress)} className="flex flex-row items-center py-3">
+                  <Image source={item.icon} className="size-6" />
+                  <Text className="text-lg font-rubik-medium text-black-300 ml-3">{item.title}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View className="flex flex-col mt-5 border-t pt-5 border-primary-200">
+              <TouchableOpacity onPress={handleLogout} className="flex flex-row items-center py-3">
+                <Image source={icons.logout} className="size-6" />
+                <Text className="text-lg font-rubik-medium text-danger ml-3">Logout</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-
-        <View className="flex flex-col mt-10">
-          <SettingsItem icon={icons.person} title="Edit Profile" onPress="/dashboard/editprofile" />
-        </View>
-
-        <View className="flex flex-col mt-5 border-t pt-5 border-primary-200">
-          {settings.slice(1).map((item, index) => (
-            <SettingsItem key={index} {...item} />
-          ))}
-        </View>
-
-        <View className="flex flex-col mt-5 border-t pt-5 border-primary-200">
-          <SettingsItem
-            icon={icons.logout}
-            title="Logout"
-            textStyle="text-danger"
-            showArrow={false}
-            onPress={handleLogout} // Now works correctly
-          />
-        </View>
+        )}
       </ScrollView>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 };
 

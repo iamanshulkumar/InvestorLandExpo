@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import axios from 'axios';
 import * as Linking from 'expo-linking';
 import * as FileSystem from 'expo-file-system';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const EditProfile = () => {
     const [image, setImage] = useState(null);
@@ -27,10 +27,11 @@ const EditProfile = () => {
         const fetchProfileData = async () => {
             try {
                 setLoading(true);
-                const userId = 4; // Replace with actual user ID from auth
-                const response = await axios.get(`https://investorlands.com/api/userprofile?id=${userId}`);
+                const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
+
+                const response = await axios.get(`https://investorlands.com/api/userprofile?id=${parsedUserData.id}`);
                 const data = response.data.data;
-                console.log(data);
+                // console.log(data);
                 setUserId(data.id);
                 setUsername(data.name);
                 setUsertype(data.user_type);
@@ -149,14 +150,14 @@ const EditProfile = () => {
 
     const handleSubmit = async () => {
         setLoading(true);
-    
+
         try {
             const formData = new FormData();
             formData.append('name', username);
             formData.append('email', email);
             formData.append('mobile', phoneNumber);
             formData.append('company_name', companyName);
-    
+
             // ✅ Upload Image Only If It's New
             if (image && !image.startsWith('http')) {
                 formData.append('profile_photo', {
@@ -165,13 +166,13 @@ const EditProfile = () => {
                     type: 'image/jpeg',
                 });
             }
-    
+
             // ✅ Upload Only New Documents
             companyDocs.forEach((doc, index) => {
                 if (doc.uri && !doc.uri.startsWith('http')) {
                     const fileType = doc.mimeType || 'application/pdf';
                     const fileName = doc.name || `document_${index + 1}.pdf`;
-    
+
                     formData.append(`company_documents[${index}]`, {
                         uri: doc.uri,
                         name: fileName,
@@ -179,13 +180,13 @@ const EditProfile = () => {
                     });
                 }
             });
-    
+
             const response = await axios.post(`https://investorlands.com/api/updateuserprofile/${userId}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-    
+
             if (response.status === 200) {
                 Alert.alert('Success', 'Profile updated successfully!');
             } else {
@@ -193,7 +194,7 @@ const EditProfile = () => {
             }
         } catch (error) {
             console.error('Error updating profile:', error);
-    
+
             if (error.response) {
                 Alert.alert('Server Error', error.response.data.message || 'Something went wrong on the server.');
             } else {
@@ -203,7 +204,7 @@ const EditProfile = () => {
             setLoading(false);
         }
     };
-    
+
 
     return (
         <SafeAreaView style={styles.container}>
