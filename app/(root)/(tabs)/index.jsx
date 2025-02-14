@@ -18,59 +18,83 @@ const Index = () => {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const [image, setImage] = useState(images.avatar); // Default avatar
+    const [listingData, setListingData] = useState(); // Default avatar
 
-    useEffect(() => {
-        const fetchUserData = async () => {
-            setLoading(true);
-            try {
-                const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
+    const fetchUserData = async () => {
+        setLoading(true);
+        try {
+            const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
 
-                if (!parsedUserData || !parsedUserData.id) {
-                    await AsyncStorage.removeItem('userData');
-                    router.push('/signin');
-                    return;
-                }
+            if (!parsedUserData || !parsedUserData.id) {
+                await AsyncStorage.removeItem('userData');
+                router.push('/signin');
+                return;
+            }
 
-                // Fetch user data from API
-                const response = await axios.get(`https://investorlands.com/api/userprofile?id=${parsedUserData.id}`);
-                // console.log('API Response:', response.data);
+            // Fetch user data from API
+            const response = await axios.get(`https://investorlands.com/api/userprofile?id=${parsedUserData.id}`);
+            // console.log('API Response:', response.data);
 
-                if (response.data && response.data.data) {
-                    const apiData = response.data.data;
-                    setUserData(apiData);
+            if (response.data && response.data.data) {
+                const apiData = response.data.data;
+                setUserData(apiData);
 
-                    // Set Profile Image, ensuring fallback to default avatar
-                    if (apiData.profile_photo_path) {
-                        setImage(
-                            apiData.profile_photo_path.startsWith('http')
-                                ? apiData.profile_photo_path
-                                : `https://investorlands.com/assets/images/Users/${apiData.profile_photo_path}`
-                        );
-                    } else {
-                        setImage(images.avatar);
-                    }
+                // Set Profile Image, ensuring fallback to default avatar
+                if (apiData.profile_photo_path) {
+                    setImage(
+                        apiData.profile_photo_path.startsWith('http')
+                            ? apiData.profile_photo_path
+                            : `https://investorlands.com/assets/images/Users/${apiData.profile_photo_path}`
+                    );
                 } else {
-                    console.error('Unexpected API response format:', response.data);
                     setImage(images.avatar);
                 }
-            } catch (error) {
-                console.error('Error fetching user data:', error);
+            } else {
+                console.error('Unexpected API response format:', response.data);
                 setImage(images.avatar);
-            } finally {
-                setLoading(false);
             }
-        };
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+            setImage(images.avatar);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchListingData = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get(`https://investorlands.com/api/property-listings`);
+            if (response.data) {
+                const apiData = response.data.data;
+                setListingData(apiData);
+                // console.log('ApiData: ',apiData);
+
+            } else {
+                console.error('Unexpected API response format:', response.data);
+            }
+
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+            setImage(images.avatar);
+        } finally {
+            setLoading(false);
+        }
+    }
+    useEffect(() => {
 
         fetchUserData();
+        fetchListingData();
     }, []);
 
+    // console.log('Api listing data: ',listingData);
     return (
         <SafeAreaView className='bg-white h-full'>
 
             <FlatList
-                data={[1, 2, 3, 4]}
-                renderItem={({ item }) => <Card item={item} onPress={() => handleCardPress(item)} />}
-                keyExtractor={(item) => item.toString()}
+                data={listingData?.data || []}
+                renderItem={({ item }) => <Card item={item} onPress={() => handleCardPress(item.id)} />}
+                keyExtractor={(item) => item.id.toString()}
                 numColumns={2}
                 contentContainerClassName="pb-32"
                 columnWrapperClassName='flex gap-5 px-5'
@@ -115,9 +139,9 @@ const Index = () => {
                         </View>
 
                         <FlatList
-                            data={[1, 2]}
-                            renderItem={({ item }) => <FeaturedCard item={item} onPress={() => handleCardPress(item)} />}
-                            keyExtractor={(item) => item.toString()}
+                            data={listingData?.data || []}
+                            renderItem={({ item }) => <FeaturedCard item={item} onPress={() => handleCardPress(item.id)} />}
+                            keyExtractor={(item) => item.id.toString()}
                             horizontal
                             bounces={false}
                             showsHorizontalScrollIndicator={false}

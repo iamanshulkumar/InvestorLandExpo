@@ -160,11 +160,11 @@ const PropertyDetails = () => {
 
                     <View className='flex flex-row items-center gap-3'>
                         <View className='flex flex-row items-center px-4 py-2 bg-primary-100 rounded-full'>
-                            <Text className='text-xs font-rubik-bold'> Category:</Text> 
+                            <Text className='text-xs font-rubik-bold'> Category:</Text>
                             <Text className='text-xs font-rubik-bold text-yellow-800'> {propertyData.category}</Text>
                         </View>
                         <View className='flex flex-row items-center px-4 py-2 bg-primary-100 rounded-full'>
-                            <Text className='text-xs font-rubik-bold'> City:</Text> 
+                            <Text className='text-xs font-rubik-bold'> City:</Text>
                             <Text className='text-xs font-rubik-bold text-yellow-800'>  {propertyData.city}</Text>
                         </View>
                     </View>

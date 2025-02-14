@@ -1,19 +1,21 @@
 import { View, TouchableOpacity, Image, TextInput, Text } from "react-native";
 import { useDebouncedCallback } from "use-debounce";
 import { useLocalSearchParams, router, usePathname } from "expo-router";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import icons from "@/constants/icons";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import RBSheet from "react-native-raw-bottom-sheet";
 import Filters from "./Filters";
 import { categories } from '@/constants/data';
+import axios from 'axios';
 
 const Search = () => {
     const path = usePathname();
     const params = useLocalSearchParams();
     const [search, setSearch] = useState(params.query);
     const refRBSheet = useRef(null);
-
+    const [categoryData, setCategoryData] = useState([]);
+    const [loading, setLoading] = useState(false); // ✅ Define loading state
     const debouncedSearch = useDebouncedCallback((text) => {
         router.setParams({ query: text });
     }, 500);
@@ -36,6 +38,26 @@ const Search = () => {
         router.setParams({ filter: category });
     }
 
+    const fetchCategories = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get(`https://investorlands.com/api/get-categories`);
+
+            if (response.data && response.data.categories) {
+                setCategoryData(response.data.categories);
+            } else {
+                console.error('Unexpected API response format:', response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchCategories();
+    }, []);
 
     return (
         <View className="flex-1">
@@ -127,11 +149,11 @@ const Search = () => {
                         <View className="mt-5">
                             <Text className="text-lg font-bold text-black-300">Property Type</Text>
                             <View className="flex flex-row items-center justify-start mt-2 flex-wrap">
-                            {categories.map((item, index) => (
-                                <TouchableOpacity key={index} onPress={() => handleCategoryPress(item.category)} className={`flex flex-col items-start mr-4 px-4 py-2 my-1 rounded-full ${selectedCategory == item.category ? 'bg-yellow-800' : 'bg-primary-100 border border-primary-200'} `}>
-                                    <Text className={`text-sm ${selectedCategory == item.category ? 'text-white font-rubik-bold mt-0.5' : 'text-black-300 font-rubik'} `}>{item.title}</Text>
-                                </TouchableOpacity>
-                            ))}
+                                {categoryData.map((item, index) => (
+                                    <TouchableOpacity key={item.id.toString()} onPress={() => handleCategoryPress(item.label)} className={`flex flex-col items-start mr-4 px-4 py-2 my-1 rounded-full ${selectedCategory == item.label ? 'bg-yellow-800' : 'bg-primary-100 border border-primary-200'} `}>
+                                        <Text className={`text-sm ${selectedCategory == item.label ? 'text-white font-rubik-bold mt-0.5' : 'text-black-300 font-rubik'} `}>{item.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
                         </View>
 
