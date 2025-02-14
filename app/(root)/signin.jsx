@@ -61,17 +61,17 @@ const Signin = () => {
   
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}>
         <Image
           source={images.appfavicon}
           style={{ width: '100%', height: '15%' }}
           resizeMode="contain"
         />
 
-        <View style={{ paddingHorizontal: 40 }}>
+        <View style={{ paddingHorizontal: 40, width: '100%', alignItems: 'center' }}>
           <Text style={styles.title}>
-            Let's Get You Closer To {'\n'}
+            Let's Get You Closer To 
             <Text style={styles.highlight}>Your Dream Home</Text>
           </Text>
 
@@ -156,6 +156,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 10,
     fontFamily: 'Rubik-Regular',
+    width: '100%',
   },
   loginButton: {
     backgroundColor: '#854d0e',
@@ -163,6 +164,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 10,
+    width: '100%',
   },
   loginButtonText: {
     fontSize: 18,
@@ -186,6 +188,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     marginTop: 20,
     alignItems: 'center',
+    width: '100%',
   },
   googleContent: {
     flexDirection: 'row',

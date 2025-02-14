@@ -19,7 +19,11 @@ const Dashboard = () => {
       setLoading(true);
       try {
         const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
-
+        if (!parsedUserData || !parsedUserData.id) {
+          await AsyncStorage.removeItem('userData');
+          router.push('/signin');
+          return;
+      }
         // Fetch user data from API
         const response = await axios.get(`https://investorlands.com/api/userprofile?id=${parsedUserData.id}`);
         // console.log('API Response:', response.data);
@@ -78,7 +82,7 @@ const Dashboard = () => {
               </TouchableOpacity>
             </View>
 
-            <View className="flex flex-row items-center ml-2 justify-start">
+            <View className="flex flex-row items-center ml-2 justify-start shadow bg-white rounded-2xl p-5">
               <Image
                 source={typeof image === 'string' ? { uri: image } : image}
                 className="size-12 rounded-full"
@@ -122,7 +126,7 @@ const Dashboard = () => {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView >
+    </SafeAreaView>
   );
 };
 

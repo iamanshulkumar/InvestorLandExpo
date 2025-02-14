@@ -25,6 +25,12 @@ const Index = () => {
             try {
                 const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
 
+                if (!parsedUserData || !parsedUserData.id) {
+                    await AsyncStorage.removeItem('userData');
+                    router.push('/signin');
+                    return;
+                }
+
                 // Fetch user data from API
                 const response = await axios.get(`https://investorlands.com/api/userprofile?id=${parsedUserData.id}`);
                 // console.log('API Response:', response.data);
@@ -72,11 +78,8 @@ const Index = () => {
                 ListHeaderComponent={
                     <View className='px-5'>
                         <View className='flex flex-row items-center justify-between mt-5'>
-                            <View className='flex flex-row items-center ml-2 justify-center'>
-                                <Link href={'/dashboard'}>
-                                    <Image source={typeof image === 'string' ? { uri: image } : image} className='size-12 rounded-full' />
-                                </Link>
-
+                            <TouchableOpacity onPress={() => router.push('/dashboard')} className='flex flex-row items-center ml-2 justify-center'>
+                                <Image source={typeof image === 'string' ? { uri: image } : image} className='size-12 rounded-full' />
                                 <View className='flex flex-col items-start ml-2 justify-center'>
                                     <Text className='text-xs font-rubik text-black-100'>
                                         Welcome
@@ -85,7 +88,7 @@ const Index = () => {
                                         {userData?.name?.split(' ')[0] || 'User'}
                                     </Text>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                             <TouchableOpacity onPress={() => router.push('/signin')}>
                                 <Text className='text-base font-rubik-medium text-black-300'>
                                     Login

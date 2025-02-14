@@ -15,35 +15,48 @@ export default function RootLayout() {
     });
 
     const [appIsReady, setAppIsReady] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(null);
     const router = useRouter();
 
     useEffect(() => {
-        const prepareApp = async () => {
+        const checkAuthSession = async () => {
             try {
                 await SplashScreen.preventAutoHideAsync();
 
                 if (fontsLoaded) {
                     const token = await AsyncStorage.getItem("userToken");
+                    const userData = await AsyncStorage.getItem("userData");
+                    const parsedUserData = userData ? JSON.parse(userData) : null;
 
-                    // Delay navigation until Root Layout is mounted
-                    requestAnimationFrame(() => {
-                        if (token) {
-                            router.replace("/"); // Redirect if logged in
-                        } else {
-                            router.replace("/signin"); // Redirect if not logged in
-                        }
-                    });
+                    if (!token || !parsedUserData || !parsedUserData.id) {
+                        await AsyncStorage.removeItem("userData");
+                        setIsAuthenticated(false);
+                    } else {
+                        setIsAuthenticated(true);
+                    }
                 }
             } catch (error) {
-                console.error("Error during auth check:", error);
+                console.error("Error during authentication check:", error);
             } finally {
                 setAppIsReady(true);
                 await SplashScreen.hideAsync();
             }
         };
 
-        prepareApp();
+        checkAuthSession();
     }, [fontsLoaded]);
+
+    useEffect(() => {
+        if (appIsReady && isAuthenticated !== null) {
+            requestAnimationFrame(() => {
+                if (isAuthenticated) {
+                    router.replace("/");
+                } else {
+                    router.replace("/signin");
+                }
+            });
+        }
+    }, [appIsReady, isAuthenticated]);
 
     if (!appIsReady) return null;
 

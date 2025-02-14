@@ -28,7 +28,11 @@ const EditProfile = () => {
             try {
                 setLoading(true);
                 const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
-
+                if (!parsedUserData || !parsedUserData.id) {
+                    await AsyncStorage.removeItem('userData');
+                    router.push('/signin');
+                    return;
+                }
                 const response = await axios.get(`https://investorlands.com/api/userprofile?id=${parsedUserData.id}`);
                 const data = response.data.data;
                 // console.log(data);
