@@ -7,7 +7,7 @@ const Filters = () => {
     const params = useLocalSearchParams();
     const [selectedCategory, setSelectedCategory] = useState(params.filter || 'All');
     const [categoryData, setCategoryData] = useState([]);
-    const [loading, setLoading] = useState(false); // ✅ Define loading state
+    const [loading, setLoading] = useState(false);
 
     const handleCategoryPress = (category) => {
         if (selectedCategory === category) {

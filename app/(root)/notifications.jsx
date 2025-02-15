@@ -1,165 +1,117 @@
 import { StyleSheet, Text, TouchableOpacity, View, Image, FlatList } from 'react-native'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import images from '@/constants/images';
-import icons from '@/constants/icons';
-import { Link, router } from 'expo-router';
-
-
-const products = [
-    {
-        id: 1,
-        name: 'Throwback Hip Bag',
-        href: '#',
-        color: 'Salmon',
-        time: '2 hours ago',
-        quantity: 1,
-        imageSrc: 'https://tailwindui.com/plus-assets/img/ecommerce-images/shopping-cart-page-04-product-01.jpg',
-        imageAlt: 'Salmon orange fabric pouch with match zipper, gray zipper pull, and adjustable hip belt.',
-    },
-    {
-        id: 2,
-        name: 'Medium Stuff Satchel',
-        href: '#',
-        color: 'Blue',
-        time: '1 day ago',
-        quantity: 1,
-        imageSrc: 'https://tailwindui.com/plus-assets/img/ecommerce-images/shopping-cart-page-04-product-02.jpg',
-        imageAlt: 'Front of satchel with blue canvas body, black straps and handle, drawstring top, and front zipper pouch.',
-    },
-    {
-        id: 3,
-        name: 'Mini Backpack',
-        href: '#',
-        color: 'Black',
-        time: '3 days ago',
-        quantity: 1,
-        imageSrc: 'https://tailwindui.com/plus-assets/img/ecommerce-images/shopping-cart-page-04-product-03.jpg',
-        imageAlt: 'Black mini backpack with adjustable straps and front zipper pocket.',
-    },
-    {
-        id: 4,
-        name: 'Travel Duffel Bag',
-        href: '#',
-        color: 'Gray',
-        time: '5 days ago',
-        quantity: 1,
-        imageSrc: 'https://tailwindui.com/plus-assets/img/ecommerce-images/shopping-cart-page-04-product-04.jpg',
-        imageAlt: 'Gray travel duffel bag with black straps and handles.',
-    },
-    {
-        id: 5,
-        name: 'Classic Tote Bag',
-        href: '#',
-        color: 'Red',
-        time: '1 week ago',
-        quantity: 1,
-        imageSrc: 'https://tailwindui.com/plus-assets/img/ecommerce-images/shopping-cart-page-04-product-05.jpg',
-        imageAlt: 'Red classic tote bag with black handles.',
-    },
-    {
-        id: 6,
-        name: 'Leather Wallet',
-        href: '#',
-        color: 'Brown',
-        time: '2 weeks ago',
-        quantity: 1,
-        imageSrc: 'https://tailwindui.com/plus-assets/img/ecommerce-images/shopping-cart-page-04-product-06.jpg',
-        imageAlt: 'Brown leather wallet with multiple card slots.',
-    },
-    {
-        id: 7,
-        name: 'Canvas Messenger Bag',
-        href: '#',
-        color: 'Green',
-        time: '3 weeks ago',
-        quantity: 1,
-        imageSrc: 'https://tailwindui.com/plus-assets/img/ecommerce-images/shopping-cart-page-04-product-07.jpg',
-        imageAlt: 'Green canvas messenger bag with adjustable shoulder strap.',
-    },
-    {
-        id: 8,
-        name: 'Weekender Bag',
-        href: '#',
-        color: 'Navy',
-        time: '1 month ago',
-        quantity: 1,
-        imageSrc: 'https://tailwindui.com/plus-assets/img/ecommerce-images/shopping-cart-page-04-product-08.jpg',
-        imageAlt: 'Navy weekender bag with black handles and shoulder strap.',
-    },
-]
+import { router } from 'expo-router'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import axios from 'axios'
 
 const Notifications = () => {
+    const [notificationData, setNotificationData] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [readStatus, setReadStatus] = useState({});
 
+    // Function to Fetch Notifications
+    const fetchNotifications = async () => {
+        setLoading(true);
+        try {
+            const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
+            const response = await axios.get(`https://investorlands.com/api/usernotifications/?user_type=${parsedUserData.user_type}`);
 
-    const [readStatus, setReadStatus] = useState(products.map(product => ({ id: product.id, read: false })));
+            if (response.data?.notifications) {
+                const apiData = response.data.notifications;
+                setNotificationData(apiData);
 
-    const toggleReadStatus = (id) => {
-        setReadStatus(prevStatus =>
-            prevStatus.map(status =>
-                status.id === id ? { ...status, read: !status.read } : status
-            )
-        );
+                // Load read/unread status from AsyncStorage
+                const storedStatus = await AsyncStorage.getItem('readStatus');
+                if (storedStatus) {
+                    setReadStatus(JSON.parse(storedStatus));
+                } else {
+                    // Initialize readStatus state based on API data
+                    const initialStatus = {};
+                    apiData.forEach((item) => {
+                        initialStatus[item.id] = false; // Default unread
+                    });
+                    setReadStatus(initialStatus);
+                }
+            } else {
+                console.error('Unexpected API response format:', response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
+
+    // Function to Toggle Read/Unread Status
+    const toggleReadStatus = async (id) => {
+        const updatedStatus = { ...readStatus, [id]: !readStatus[id] };
+        setReadStatus(updatedStatus);
+        await AsyncStorage.setItem('readStatus', JSON.stringify(updatedStatus));
+    };
+
+    // Function to Mark All as Read
+    const markAllAsRead = async () => {
+        const updatedStatus = {};
+        notificationData.forEach((item) => {
+            updatedStatus[item.id] = true;
+        });
+        setReadStatus(updatedStatus);
+        await AsyncStorage.setItem('readStatus', JSON.stringify(updatedStatus));
     };
 
     return (
         <SafeAreaView className="bg-white h-full px-4">
-            <View className="flex-row items-center ml-2 justify-between">
+            {/* Header */}
+            <View className="flex-row items-center justify-between">
                 <TouchableOpacity onPress={() => router.back()} className="flex-row bg-gray-300 rounded-full w-11 h-11 items-center justify-center">
-                    <Image source={icons.backArrow} className="w-5 h-5" />
+                    <Text className="text-lg">←</Text>
                 </TouchableOpacity>
-                <Text className="text-lg mr-2 text-center font-medium text-gray-700">
-                    Notifications
-                </Text>
-                <View>
-                    <TouchableOpacity onPress={() => setReadStatus(readStatus.map(status => ({ ...status, read: true })))}>
-                        <Text>Mark all read</Text>
-                    </TouchableOpacity>
-                </View>
+                <Text className="text-lg font-medium text-gray-700">Notifications</Text>
+                <TouchableOpacity onPress={markAllAsRead}>
+                    <Text className="text-blue-600">Mark all read</Text>
+                </TouchableOpacity>
             </View>
 
-            <View className="mt-3 mb-12">
-                <FlatList
-                    data={products}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerClassName=''
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item: product }) => {
-                        const isRead = readStatus.find(status => status.id === product.id)?.read;
-                        return (
-                            <View className={`flex-row my-1 p-3 rounded-lg border border-gray-100 ${isRead ? ' ' : 'bg-blue-50'}`}>
-                                <View className="w-24 h-24 overflow-hidden rounded-lg border border-gray-300">
-                                    <Image source={{ uri: product.imageSrc }} className="w-full h-full object-cover" />
-                                </View>
+            {/* Notifications List */}
+            <FlatList
+                data={notificationData}
+                keyExtractor={(item) => item.id.toString()}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => {
+                    const imageUrl = `https://investorlands.com/assets/images/${item.notificationimg}`;
+                    const isRead = readStatus[item.id] || false;
 
-                                <View className="ml-4 flex-1 flex-col">
-                                    <View className="flex-row justify-between">
-                                        <Link href={product.href}>
-                                            <Text className="text-lg font-medium text-gray-900">
-                                                {product.name}
-                                            </Text>
-                                        </Link>
-                                        <TouchableOpacity onPress={() => toggleReadStatus(product.id)}>
-                                            <View className="flex-row items-center">
-                                                <View className={`w-5 h-5 border border-gray-100 rounded-full ${isRead ? 'bg-green-600 border-green-400' : '  bg-white'}`} />
-                                            </View>
-                                        </TouchableOpacity>
-                                    </View>
-                                    <View className="mt-2 flex-row items-end">
-                                        <Text className="text-sm text-gray-500 flex-1">{product.imageAlt}</Text>
-                                        <Text className="text-sm text-gray-500 ">{product.time}</Text>
-                                    </View>
-                                    
-                                </View>
+                    return (
+                        <View className={`flex-row my-2 p-3 rounded-lg border ${isRead ? 'bg-gray-100' : 'bg-blue-50'}`}>
+                            {/* Notification Image */}
+                            <View className="w-20 h-20 rounded-lg overflow-hidden border border-gray-300">
+                                <Image source={{ uri: imageUrl }} className="w-full h-full object-cover" />
                             </View>
-                        ); 
-                    }}
-                />
-            </View>
+
+                            {/* Notification Details */}
+                            <View className="ml-4 flex-1">
+                                <View className="flex-row justify-between">
+                                    <Text className="text-lg font-medium text-gray-900">{item.notificationname}</Text>
+                                    <TouchableOpacity onPress={() => toggleReadStatus(item.id)}>
+                                        <View className={`w-5 h-5 border rounded-full ${isRead ? 'bg-green-600 border-green-400' : 'bg-white border-gray-300'}`} />
+                                    </TouchableOpacity>
+                                </View>
+                                <Text className="text-sm text-gray-500 mt-1">{item.notificationdes}</Text>
+                                <Text className="text-xs text-gray-400 mt-2">{new Date(item.created_at).toLocaleDateString()} • {new Date(item.created_at).toLocaleTimeString()}</Text>
+                            </View>
+                        </View>
+                    );
+                }}
+            />
         </SafeAreaView>
-    )
-}
+    );
+};
 
-export default Notifications
+export default Notifications;
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({});

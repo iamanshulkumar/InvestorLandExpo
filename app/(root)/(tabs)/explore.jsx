@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, FlatList } from 'react-native';
-import React from 'react';
+import ReactCard, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import images from '@/constants/images';
 import icons from '@/constants/icons';
@@ -7,15 +7,46 @@ import Search from '@/components/Search';
 import { Card, FeaturedCard } from '@/components/Cards';
 import Filters from '@/components/Filters';
 import { router } from 'expo-router';
+import axios from 'axios';
 
 const Explore = () => {
+  const [listingData, setListingData] = useState();
+  const [loading, setLoading] = useState(false);
+  const handleCardPress = (id) => router.push(`/properties/${id}`);
+
+
+  const fetchListingData = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`https://investorlands.com/api/property-listings`);
+      if (response.data) {
+        const apiData = response.data.data;
+        setListingData(apiData);
+        // console.log('ApiData: ',apiData);
+
+      } else {
+        console.error('Unexpected API response format:', response.data);
+      }
+
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+
+    fetchListingData();
+  }, []);
+
   return (
     <SafeAreaView className='bg-white h-full'>
 
       <FlatList
-        data={[1, 2, 3, 4]}
-        renderItem={({ item }) => <Card />}
-        keyExtractor={(item) => item.toString()}
+        data={listingData?.data || []}
+        renderItem={({ item }) => <Card item={item} onPress={() => handleCardPress(item.id)} />}
+        keyExtractor={(item) => item.id.toString()}
         numColumns={2}
         contentContainerClassName="pb-32"
         columnWrapperClassName='flex gap-5 px-5'
@@ -41,7 +72,7 @@ const Explore = () => {
 
             <View className='my-5'>
               <View className='flex flex-row items-center justify-between'>
-                <Text className='text-xl font-rubik-bold text-black-300'>Found X properties</Text>
+                <Text className='text-xl font-rubik-bold text-black-300'>Found properties</Text>
 
               </View>
             </View>

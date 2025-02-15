@@ -1,22 +1,37 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, TextInput, ScrollView, Button } from 'react-native'
-import React, { useState, useRef } from 'react'
+import { Image, StyleSheet, Text, TouchableOpacity, View, TextInput, ScrollView, Button, ActivityIndicator, FlatList } from 'react-native'
+import React, { useState, useRef, useEffect } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import icons from '@/constants/icons';
 import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
 import * as ImagePicker from 'expo-image-picker';
 import RNPickerSelect from 'react-native-picker-select';
 import { Link, router, useLocalSearchParams } from 'expo-router';
+import axios from 'axios';
+import images from "@/constants/images";
+import Videobox from '../../../../components/Videobox';
 
 
 const Editproperty = () => {
-    const [step1Data, setStep1Data] = useState({ name: '', description: '' });
-    const [step2Data, setStep2Data] = useState({ email: '', username: '' });
-    const [step3Data, setStep3Data] = useState({ password: '', retypePassword: '' });
-    const textareaRef = useRef(null);
-    const [selectedValue, setSelectedValue] = useState(null);
-    const [isValid, setIsValid] = useState(false);
     const { id } = useLocalSearchParams();
-
+    const [step1Data, setStep1Data] = useState({ name: '', description: '', thumbnail: images.avatar });
+    const [step2Data, setStep2Data] = useState({
+        Price: '',
+        squarefoot: '',
+        Bathroom: '',
+        Floor: '',
+        City: '',
+        Address: '',
+    });
+    const [step3Data, setStep3Data] = useState({ gallery: [], videos: [] });
+    const textareaRef = useRef(null);
+    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [isValid, setIsValid] = useState(false);
+    const [selectedStatus, setSelectedStatus] = useState(null);
+    const [propertyData, setPropertyData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [propertyThumbnail, setPropertyThumbnail] = useState(images.avatar); // Default avatar
+    const [propertyGallery, setPropertyGallery] = useState([]); // Initialize as an empty array
+    const [propertyVideos, setPropertyVideos] = useState([]);
     const [errors, setErrors] = useState(false);
 
     const onNextStep = () => {
@@ -78,39 +93,174 @@ const Editproperty = () => {
         { label: 'Bunglow', value: 'Bunglow' },
     ];
     const status = [
-        { label: 'Unpublished', value: 'Unpublished' },
-        { label: 'Published', value: 'Published' },
+        { label: 'unpublished', value: 'unpublished' },
+        { label: 'Published', value: 'published' },
     ];
+
+
+    // Fetch Property Data
+    const fetchPropertyData = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`https://investorlands.com/api/property-details/${id}`);
+            // console.log(response.data);
+            if (response.data) {
+                const apiData = response.data.details;
+                setPropertyData(apiData);
+
+                setStep1Data({
+                    name: apiData.property_name || '',
+                    description: apiData.discription || '',
+                });
+
+                setStep2Data({
+                    Price: apiData.price || '',
+                    squarefoot: apiData.squarefoot || '',
+                    Bathroom: apiData.bathroom || '',
+                    Floor: apiData.floor || '',
+                    City: apiData.city || '',
+                    Address: apiData.address || '',
+                });
+
+
+                if (apiData.gallery) {
+                    const galleryImages = JSON.parse(apiData.gallery).map(img =>
+                        img.startsWith('http') ? img : `https://investorlands.com/${img}`
+                    );
+
+                    setPropertyGallery(galleryImages);
+                    // console.log("Updated Property Gallery:", galleryImages);
+                }
+                if (apiData.videos) {
+                    const galleryVideos = JSON.parse(apiData.videos).map(video =>
+                        video.startsWith('http') ? video : `https://investorlands.com/${video}`
+                    );
+
+                    setPropertyVideos(galleryVideos);
+                    // console.log("Updated Property Video   :", propertyVideos);
+                }
+
+
+                setSelectedCategory(apiData.category || '');
+                setSelectedStatus(apiData.status || '');
+
+                if (apiData.thumbnail) {
+                    setPropertyThumbnail(
+                        apiData.thumbnail.startsWith('http')
+                            ? apiData.thumbnail
+                            : `https://investorlands.com/assets/images/Listings/${apiData.thumbnail}`
+                    );
+                } else {
+                    setPropertyThumbnail(images.newYork);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching property data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    useEffect(() => {
+        if (id) {
+            fetchPropertyData();
+        }
+    }, [id]);
+
+    useEffect(() => {
+        if (propertyData) {
+            // console.log("Status from API:", propertyData.status); // Debugging line
+
+            setStep1Data({
+                name: propertyData.property_name || '',
+                description: propertyData.discription || '',
+            });
+
+            setStep2Data({
+                Price: propertyData.price || '',
+                squarefoot: propertyData.squarefoot || '',
+                Bathroom: propertyData.bathroom || '',
+                Floor: propertyData.floor || '',
+                City: propertyData.city || '',
+                Address: propertyData.address || '',
+            });
+
+            setSelectedCategory(propertyData.category || '');
+            setSelectedStatus(propertyData.status || ''); // Debug here
+            if (propertyData.gallery) {
+                const galleryImages = JSON.parse(propertyData.gallery).map(img =>
+                    img.startsWith('http') ? img : `https://investorlands.com/${img}`
+                );
+
+                setPropertyGallery(galleryImages);
+                // console.log("Updated Property Gallery:", galleryImages);
+            }
+            if (propertyData.videos) {
+                const galleryVideos = JSON.parse(propertyData.videos).map(video =>
+                    video.startsWith('http') ? video : `https://investorlands.com/${video}`
+                );
+
+                setPropertyVideos(galleryVideos);
+                // console.log("Updated Property Video   :", propertyVideos);
+            }
+        }
+    }, [propertyData]);
+
+    if (loading) {
+        return (
+            <ActivityIndicator size="large" color="#8a4c00" style={{ marginTop: 400 }} />
+        );
+    }
+
+    if (!propertyData) {
+        return (
+            <ActivityIndicator size="large" color="#8a4c00" style={{ marginTop: 400 }} />
+        );
+    }
 
     return (
         <SafeAreaView style={{ backgroundColor: 'white', height: '100%', paddingHorizontal: 20 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10, justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', backgroundColor: '#E0E0E0', borderRadius: 50, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
                     <Image source={icons.backArrow} style={{ width: 20, height: 20 }} />
                 </TouchableOpacity>
                 <Text style={{ fontSize: 16, marginRight: 10, textAlign: 'center', fontFamily: 'Rubik-Medium', color: '#4A4A4A' }}>
-                    Add New Property {id}
+                    Edit My Property
                 </Text>
                 <Link href={'/notifications'}>
                     <Image source={icons.bell} className='size-6' />
                 </Link>
             </View>
+
+
+            <View className="flex justify-center items-center pt-3">
+                <Text className="font-rubik text-lg">{step1Data.name}</Text>
+                <Text className={`inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-rubik ring-1 ring-inset ${selectedStatus === 'published' ? ' bg-green-50  text-green-700  ring-green-600/20 ' : 'bg-red-50  text-red-700 ring-red-600/20'}`}>{selectedStatus}</Text>
+            </View>
+
             <View style={styles.container}>
                 <ProgressSteps>
                     <ProgressStep label="General" nextBtnTextStyle={buttonTextStyle}>
                         <View style={styles.stepContent}>
                             <Text style={styles.label}>Property Name</Text>
                             <TextInput style={styles.input} placeholder="Enter property name" value={step1Data.name} onChangeText={text => setStep1Data({ ...step1Data, name: text })} />
+
                             <Text style={styles.label}>Property Description</Text>
                             <TextInput style={styles.textarea} value={step1Data.description} onChangeText={text => setStep1Data({ ...step1Data, description: text })} maxLength={120} placeholder="Enter property description" multiline numberOfLines={5} />
+
                             <Text style={styles.label}>Property Thumbnail</Text>
-                            {image && <Image source={{ uri: image }} style={styles.image} />}
-                            <TouchableOpacity onPress={pickImage} style={styles.dropbox}>
-                                <Text style={{ textAlign: 'center' }}>Pick an image from gallery</Text>
-                            </TouchableOpacity>
+                            <View className="flex flex-row">
+                                <TouchableOpacity onPress={pickImage} style={styles.dropbox} className="m-3">
+                                    <Text style={{ textAlign: 'center' }}>Pick an image from gallery</Text>
+                                </TouchableOpacity>
+                                <Image source={{ uri: propertyThumbnail }} style={styles.image} />
+                            </View>
 
                             <Text style={styles.label}>Select category</Text>
-                            <RNPickerSelect onValueChange={(value) => setSelectedValue(value)} items={categories} style={pickerSelectStyles} placeholder={{ label: 'Choose an option...', value: null }} />
+                            <View style={styles.pickerContainer}>
+                                <RNPickerSelect value={selectedCategory} onValueChange={(value) => setSelectedCategory(value)} items={categories} style={pickerSelectStyles} placeholder={{ label: 'Choose an option...', value: null }} />
+                            </View>
                         </View>
                     </ProgressStep>
                     <ProgressStep label="Details" nextBtnTextStyle={buttonTextStyle} previousBtnTextStyle={buttonTextStyle}>
@@ -119,52 +269,114 @@ const Editproperty = () => {
                         </View>
                         <View style={styles.stepContent}>
                             <Text style={styles.label}>Property Price</Text>
-                            <TextInput style={styles.input} placeholder="Property Price" value={step2Data.email} onChangeText={text => setStep2Data({ ...step2Data, Price: text })} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Property Price"
+                                value={step2Data.Price}
+                                onChangeText={text => setStep2Data({ ...step2Data, Price: text })}
+                            />
+
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                                 <View style={{ flex: 1, marginRight: 5 }}>
                                     <Text style={styles.label}>Square Foot</Text>
-                                    <TextInput style={styles.input} placeholder="Square Foot" value={step2Data.username} onChangeText={text => setStep2Data({ ...step2Data, squarefoot: text })} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Square Foot"
+                                        value={step2Data.squarefoot}
+                                        onChangeText={text => setStep2Data({ ...step2Data, squarefoot: text })}
+                                    />
                                 </View>
                                 <View style={{ flex: 1, marginLeft: 5 }}>
                                     <Text style={styles.label}>Bathroom</Text>
-                                    <TextInput style={styles.input} placeholder="Bathroom" value={step2Data.username} onChangeText={text => setStep2Data({ ...step2Data, Bathroom: text })} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Bathroom"
+                                        value={step2Data.Bathroom}
+                                        onChangeText={text => setStep2Data({ ...step2Data, Bathroom: text })}
+                                    />
                                 </View>
                             </View>
+
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                                 <View style={{ flex: 1, marginRight: 5 }}>
                                     <Text style={styles.label}>Floor</Text>
-                                    <TextInput style={styles.input} placeholder="Floor" value={step2Data.username} onChangeText={text => setStep2Data({ ...step2Data, Floor: text })} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Floor"
+                                        value={step2Data.Floor}
+                                        onChangeText={text => setStep2Data({ ...step2Data, Floor: text })}
+                                    />
                                 </View>
                                 <View style={{ flex: 1, marginLeft: 5 }}>
                                     <Text style={styles.label}>City</Text>
-                                    <TextInput style={styles.input} placeholder="Enter City" value={step2Data.username} onChangeText={text => setStep2Data({ ...step2Data, City: text })} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Enter City"
+                                        value={step2Data.City}
+                                        onChangeText={text => setStep2Data({ ...step2Data, City: text })}
+                                    />
                                 </View>
                             </View>
+
                             <Text style={styles.label}>Property Address</Text>
-                            <TextInput style={styles.textarea} placeholder="Property Address" value={step2Data.username} onChangeText={text => setStep2Data({ ...step2Data, Address: text })} multiline numberOfLines={5} maxLength={120} />
+                            <TextInput
+                                style={styles.textarea}
+                                placeholder="Property Address"
+                                value={step2Data.Address}
+                                onChangeText={text => setStep2Data({ ...step2Data, Address: text })}
+                                multiline
+                                numberOfLines={5}
+                                maxLength={120}
+                            />
+
                         </View>
                     </ProgressStep>
                     <ProgressStep label="Documents" nextBtnTextStyle={buttonTextStyle} previousBtnTextStyle={buttonTextStyle}>
+
                         <Text style={styles.label}>Property Gallery</Text>
-                        {image && <Image source={{ uri: image }} style={styles.image} />}
                         <TouchableOpacity onPress={pickImage} style={styles.dropbox}>
                             <Text style={{ textAlign: 'center' }}>Pick an image from gallery</Text>
                         </TouchableOpacity>
-                        <View style={styles.stepContent}>
-                            <Text style={styles.label}>Select Status</Text>
-                            <RNPickerSelect onValueChange={(value) => setSelectedValue(value)} items={status} style={pickerSelectStyles} placeholder={{ label: 'Choose an option...', value: null }} />
-                        </View>
+                        <ScrollView horizontal style={{ marginTop: 10 }}>
+                            {propertyGallery && propertyGallery.map((img, index) => (
+                                <Image key={index} source={{ uri: img }} style={[styles.image, { marginRight: 10 }]} />
+                            ))}
+                        </ScrollView>
+
                         <View style={styles.stepContent}>
                             <Text style={styles.label}>Upload Videos</Text>
                             <TouchableOpacity onPress={pickVideo} style={styles.dropbox}>
                                 <Text style={{ textAlign: 'center' }}>Pick videos from gallery</Text>
                             </TouchableOpacity>
-                            {videos.length > 0 && videos.map((video, index) => (
-                                <View key={index} style={styles.videoContainer}>
-                                    <Text>{video.uri}</Text>
+
+                            {propertyVideos.length > 0 ? (
+                                <View className=" mt-4">
+                                    <FlatList
+                                        data={propertyVideos}
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        keyExtractor={(_, index) => `video-${index}`}
+                                        renderItem={({ item }) => <Videobox url={item} />}
+                                    />
                                 </View>
-                            ))}
+                            ) : (
+                                <View className="mt-7 justify-center items-center">
+                                    <Text className="text-gray-400 text-lg">No videos available</Text>
+                                </View>
+                            )}
                         </View>
+
+                        <Text style={styles.label}>Property Status</Text>
+                        <View style={styles.pickerContainer}>
+                            <RNPickerSelect
+                                value={selectedStatus}
+                                onValueChange={(value) => setSelectedStatus(value)}
+                                items={status}
+                                style={pickerSelectStyles}
+                                placeholder={{ label: 'Choose an option...', value: null }}
+                            />
+                        </View>
+
                     </ProgressStep>
                 </ProgressSteps>
             </View>
@@ -177,8 +389,7 @@ export default Editproperty
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 10,
-        paddingBottom: 40,
+        paddingBottom: 0,
         backgroundColor: '#fff',
     },
     label: {
@@ -217,12 +428,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#edf5ff',
     },
     image: {
-        width: 200,
-        height: 200,
+        width: 100,
+        height: 100,
+        borderRadius: 10,
+        padding: 5,
+        marginTop: 10,
     },
     dropbox: {
-        height: 80,
-        padding: 5,
+        height: 100,
+        padding: 15,
         borderStyle: 'dashed',
         borderWidth: 2,
         borderColor: '#edf5ff',
@@ -232,8 +446,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignContent: 'center',
     },
-
+    pickerContainer: {
+        borderRadius: 10, // Apply borderRadius here
+        overflow: 'hidden',
+        backgroundColor: '#edf5ff',
+        marginTop: 10,
+        marginBottom: 20,
+    },
 });
+
 const pickerSelectStyles = StyleSheet.create({
     inputIOS: {
         fontSize: 16,
@@ -251,9 +472,8 @@ const pickerSelectStyles = StyleSheet.create({
         fontSize: 16,
         paddingHorizontal: 10,
         backgroundColor: '#edf5ff',
-        borderRadius: 20,
+        borderRadius: 40,
         color: 'black',
         paddingRight: 30,
-        marginTop: 10,
     },
 });

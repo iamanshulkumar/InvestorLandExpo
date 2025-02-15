@@ -10,16 +10,18 @@ import { Link, useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+// import { useNavigation } from "expo-router"; 
+import { useNavigation } from "@react-navigation/native";
 
 const Index = () => {
-
     const handleCardPress = (id) => router.push(`/properties/${id}`);
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const [image, setImage] = useState(images.avatar); // Default avatar
     const [listingData, setListingData] = useState(); // Default avatar
-
+    const navigation = useNavigation();
+    
     const fetchUserData = async () => {
         setLoading(true);
         try {
@@ -76,7 +78,6 @@ const Index = () => {
 
         } catch (error) {
             console.error('Error fetching user data:', error);
-            setImage(images.avatar);
         } finally {
             setLoading(false);
         }
@@ -90,7 +91,6 @@ const Index = () => {
     // console.log('Api listing data: ',listingData);
     return (
         <SafeAreaView className='bg-white h-full'>
-
             <FlatList
                 data={listingData?.data || []}
                 renderItem={({ item }) => <Card item={item} onPress={() => handleCardPress(item.id)} />}
@@ -162,7 +162,6 @@ const Index = () => {
                     </View>
                 }
             />
-
         </SafeAreaView>
     );
 };
