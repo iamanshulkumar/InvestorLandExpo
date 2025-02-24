@@ -113,16 +113,7 @@ const Index = () => {
                                     </Text>
                                 </View>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => router.push('/signin')}>
-                                <Text className='text-base font-rubik-medium text-black-300'>
-                                    Login
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => router.push('/signup')}>
-                                <Text className='text-base font-rubik-medium text-black-300'>
-                                    SignUp
-                                </Text>
-                            </TouchableOpacity>
+                            
                             <TouchableOpacity onPress={() => router.push('/notifications')}>
                                 <Image source={icons.bell} className='size-6' />
                             </TouchableOpacity>

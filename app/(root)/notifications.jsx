@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
+import icons from '@/constants/icons';
 
 const Notifications = () => {
     const [notificationData, setNotificationData] = useState([]);
@@ -67,11 +68,11 @@ const Notifications = () => {
     return (
         <SafeAreaView className="bg-white h-full px-4">
             {/* Header */}
-            <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center justify-between mb-3">
                 <TouchableOpacity onPress={() => router.back()} className="flex-row bg-gray-300 rounded-full w-11 h-11 items-center justify-center">
-                    <Text className="text-lg">←</Text>
+                    <Image source={icons.backArrow} style={{ width: 20, height: 20 }} />
                 </TouchableOpacity>
-                <Text className="text-lg font-medium text-gray-700">Notifications</Text>
+                <Text className="text-lg text-gray-700 font-rubik-bold">Notifications</Text>
                 <TouchableOpacity onPress={markAllAsRead}>
                     <Text className="text-blue-600">Mark all read</Text>
                 </TouchableOpacity>
@@ -83,11 +84,11 @@ const Notifications = () => {
                 keyExtractor={(item) => item.id.toString()}
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => {
-                    const imageUrl = `https://investorlands.com/assets/images/${item.notificationimg}`;
+                    const imageUrl = `https://investorlands.com/assets/images/Notificaitons/${item.notificationimg}`;
                     const isRead = readStatus[item.id] || false;
 
                     return (
-                        <View className={`flex-row my-2 p-3 rounded-lg border ${isRead ? 'bg-gray-100' : 'bg-blue-50'}`}>
+                        <View className={`flex-row my-2 p-3 rounded-lg  ${isRead ? ' bg-white-500 border-gray-300 border' : 'bg-blue-50 border border-blue-400'}`}>
                             {/* Notification Image */}
                             <View className="w-20 h-20 rounded-lg overflow-hidden border border-gray-300">
                                 <Image source={{ uri: imageUrl }} className="w-full h-full object-cover" />
@@ -96,7 +97,7 @@ const Notifications = () => {
                             {/* Notification Details */}
                             <View className="ml-4 flex-1">
                                 <View className="flex-row justify-between">
-                                    <Text className="text-lg font-medium text-gray-900">{item.notificationname}</Text>
+                                    <Text className={`text-lg   ${isRead ? ' text-blue-900 font-rubik-bold' : 'text-gray-900 font-rubik-bold'}`}>{item.notificationname}</Text>
                                     <TouchableOpacity onPress={() => toggleReadStatus(item.id)}>
                                         <View className={`w-5 h-5 border rounded-full ${isRead ? 'bg-green-600 border-green-400' : 'bg-white border-gray-300'}`} />
                                     </TouchableOpacity>

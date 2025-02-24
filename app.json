@@ -76,7 +76,8 @@
       },
       "eas": {
         "projectId": "b9b062d0-380c-4ab0-8b80-cb450a9dc58a"
-      }
+      },
+      "GOOGLE_MAPS_API_KEY": "AIzaSyA_KLtDmYZB0Qy_b0f6LHJSlDV2wYYPf8s"
     }
   }
 }
