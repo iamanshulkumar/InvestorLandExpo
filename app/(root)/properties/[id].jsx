@@ -9,7 +9,8 @@ import Videobox from "../../../components/Videobox";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PropertyDetails = () => {
-    const { id } = useLocalSearchParams();
+    const [propertyId, setPropertyId] = useState(useLocalSearchParams().id);
+
     const windowHeight = Dimensions.get("window").height;
     const [propertyData, setPropertyData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -29,7 +30,7 @@ const PropertyDetails = () => {
                 const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
                 setLoggedinUserId(parsedUserData.id)
                 // Fetch user data from API
-                const response = await axios.get(`https://investorlands.com/api/property-details/${id}`);
+                const response = await axios.get(`https://investorlands.com/api/property-details/${propertyId}`);
                 // console.log('API Response:', response.data);
 
                 if (response.data) {
@@ -86,7 +87,7 @@ const PropertyDetails = () => {
         };
 
         fetchPropertyData();
-    }, [id])
+    }, [propertyId])
 
 
     if (loading) {

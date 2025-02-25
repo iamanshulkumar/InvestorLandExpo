@@ -241,7 +241,10 @@ const Editproperty = () => {
 
             <View style={styles.container}>
                 <ProgressSteps>
-                    <ProgressStep label="General" nextBtnTextStyle={buttonTextStyle}>
+                    <ProgressStep label="General" nextBtnTextStyle={buttonTextStyle}
+                        onNext={() => onNextStep(1)}
+                        errors={errors}
+                    >
                         <View style={styles.stepContent}>
                             <Text style={styles.label}>Property Name</Text>
                             <TextInput style={styles.input} placeholder="Enter property name" value={step1Data.name} onChangeText={text => setStep1Data({ ...step1Data, name: text })} />
