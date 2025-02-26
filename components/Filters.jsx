@@ -1,37 +1,49 @@
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
 
 const Filters = () => {
     const params = useLocalSearchParams();
-    const [selectedCategory, setSelectedCategory] = useState(params.filter || 'All');
+    const router = useRouter();
+    
+    const [selectedCategory, setSelectedCategory] = useState(params.propertyType || 'All');
     const [categoryData, setCategoryData] = useState([]);
     const [loading, setLoading] = useState(false);
 
     const handleCategoryPress = (category) => {
-        if (selectedCategory === category) {
+        const isRemovingFilter = selectedCategory === category;
+
+        // Prepare new query parameters
+        const updatedParams = { ...params };
+
+        if (isRemovingFilter) {
+            delete updatedParams.propertyType; // Remove filter if category is already selected
             setSelectedCategory('All');
-            router.setParams({ filter: 'all' });
-            return;
+        } else {
+            updatedParams.propertyType = category;
+            setSelectedCategory(category);
         }
 
-        setSelectedCategory(category);
-        router.setParams({ filter: category });
+        // Navigate with updated query parameters
+        router.push({
+            pathname: "/properties/explore",
+            params: updatedParams,
+        });
     };
 
     const fetchCategories = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`https://investorlands.com/api/get-categories`);
+            const response = await axios.get("https://investorlands.com/api/get-categories");
 
             if (response.data && response.data.categories) {
                 setCategoryData(response.data.categories);
             } else {
-                console.error('Unexpected API response format:', response.data);
+                console.error("Unexpected API response format:", response.data);
             }
         } catch (error) {
-            console.error('Error fetching categories:', error);
+            console.error("Error fetching categories:", error);
         } finally {
             setLoading(false);
         }

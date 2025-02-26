@@ -21,7 +21,7 @@ const FeaturedCard = ({ item, onPress }) => {
           <Text className='text-base font-rubik text-white' numberOfLines={1}>{item.city}, {item.address}</Text>
           <View className='flex flex-row items-center justify-between w-full'>
             <Text className='text-xl font-rubik-extrabold text-white'>{item.category}</Text>
-            <Image source={icons.heart} className='size-5' />
+            {/* <Image source={icons.heart} className='size-5' /> */}
           </View>
         </View>
       </TouchableOpacity>
@@ -43,15 +43,11 @@ const Card = ({ item, onPress }) => {
 
       <View className='flex flex-col mt-2'>
         <Text className='text-base font-rubik-bold text-black-300'>{item.property_name}</Text>
-
         <Text className='text-xs font-rubik text-black-100'>{item.city}, {item.address}</Text>
 
         <View className='flex flex-row items-center justify-between mt-2'>
-
           <Text className='text-base font-rubik-bold text-yellow-800'>{item.category}</Text>
-
-          <Image source={icons.heart} className='w-5 h-5 mr-2' tintColor="#191d31" />
-
+          {/* <Image source={icons.heart} className='w-5 h-5 mr-2' tintColor="#191d31" /> */}
         </View>
 
       </View>

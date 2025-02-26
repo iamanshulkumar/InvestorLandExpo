@@ -24,66 +24,54 @@ const EditProfile = () => {
 
     // Fetch existing profile data
     useEffect(() => {
-        const fetchProfileData = async () => {
-            try {
-                setLoading(true);
-                const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
-                if (!parsedUserData || !parsedUserData.id) {
-                    await AsyncStorage.removeItem('userData');
-                    router.push('/signin');
-                    return;
-                }
-                const response = await axios.get(`https://investorlands.com/api/userprofile?id=${parsedUserData.id}`);
-                const data = response.data.data;
-                // console.log(data);
-                setUserId(data.id);
-                setUsername(data.name);
-                setUsertype(data.user_type);
-                setEmail(data.email);
-                setPhoneNumber(data.mobile);
-                setCompanyName(data.company_name);
-
-                // If profile_photo_path exists, prepend the base URL
-                if (data.profile_photo_path) {
-                    if (data.profile_photo_path.startsWith('http')) {
-                        setImage(data.profile_photo_path);
-                    } else {
-                        setImage(`https://investorlands.com/assets/images/Users/${data.profile_photo_path}`);
-                    }
-                } else {
-                    setImage(images.avatar);
-                }
-
-                // Handle company_documents (single or multiple)
-                if (data.company_documents || data.company_document) {
-                    let docsArray = [];
-
-                    if (Array.isArray(data.company_documents)) {
-                        docsArray = data.company_documents;
-                    } else if (typeof data.company_documents === 'string') {
-                        docsArray = data.company_documents.includes(',')
-                            ? data.company_documents.split(',')
-                            : [data.company_documents];
-                    } else if (typeof data.company_document === 'string') {
-                        docsArray = [data.company_document];
-                    }
-
-                    const formattedDocs = docsArray.map(doc => ({
-                        uri: `https://investorlands.com/assets/images/Users/${doc.trim()}`,
-                        name: doc.trim(),
-                    }));
-
-                    setCompanyDocs(formattedDocs);
-                }
-            } catch (error) {
-                console.error('Error fetching profile data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
 
         fetchProfileData();
     }, []);
+
+    const fetchProfileData = async () => {
+        try {
+            setLoading(true);
+            const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
+
+            if (!parsedUserData || !parsedUserData.id) {
+                await AsyncStorage.removeItem('userData');
+                router.push('/signin');
+                return;
+            }
+
+            const response = await axios.get(`https://investorlands.com/api/userprofile?id=${parsedUserData.id}`);
+            const data = response.data.data;
+
+            setUserId(data.id);
+            setUsername(data.name);
+            setUsertype(data.user_type);
+            setEmail(data.email);
+            setPhoneNumber(data.mobile);
+            setCompanyName(data.company_name);
+
+            let profileImage = data.profile_photo_path;
+
+            // 🔹 Ensure profile_photo_path is a valid string before setting it
+            if (typeof profileImage === 'number') {
+                profileImage = profileImage.toString(); // Convert number to string
+            }
+
+            if (typeof profileImage === 'string' && profileImage.trim() !== '' && profileImage !== 'null' && profileImage !== 'undefined') {
+                profileImage = profileImage.startsWith('http')
+                    ? profileImage
+                    : `https://investorlands.com/assets/images/Users/${profileImage}`;
+            } else {
+                profileImage = images.avatar; // Ensure default image is a valid source
+            }
+
+            console.log('Final Image URL:', profileImage); // Debugging
+            setImage(profileImage);
+        } catch (error) {
+            console.error('Error fetching profile data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
 

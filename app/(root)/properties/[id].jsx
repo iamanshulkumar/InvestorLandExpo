@@ -24,67 +24,109 @@ const PropertyDetails = () => {
         gallery: gallery,
     };
 
-    useEffect(() => {
-        const fetchPropertyData = async () => {
-            try {
-                const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
-                setLoggedinUserId(parsedUserData.id)
-                // Fetch user data from API
-                const response = await axios.get(`https://investorlands.com/api/property-details/${propertyId}`);
-                // console.log('API Response:', response.data);
 
-                if (response.data) {
-                    const apiData = response.data.details;
-                    setPropertyData(apiData);
-                    // console.log('API apiData:', apiData);
-
-                    // Set Profile Image, ensuring fallback to default avatar
-                    if (apiData.thumbnail) {
-                        // console.log('API apiData.thumbnail:', apiData.thumbnail);
-                        setPropertyThumbnail(
-                            apiData.thumbnail.startsWith('http')
-                                ? apiData.thumbnail
-                                : `https://investorlands.com/assets/images/Listings/${apiData.thumbnail}`
-                        );
-                    } else {
-                        setPropertyThumbnail(images.newYork);
-                    }
-
-                    if (apiData.gallery) {
-                        const galleryImages = JSON.parse(apiData.gallery).map((image) => ({
-                            id: Math.random().toString(36).substring(2, 11), // Generate a unique id for each image
-                            image: image.startsWith('http')
-                                ? image
-                                : `https://investorlands.com/${image.replace(/\\/g, '/')}`,
-                        }));
-                        setPropertyGallery(galleryImages);
-                    }
-
-                    let parsedVideos = [];
-                    try {
-                        parsedVideos = typeof apiData.videos === 'string'
-                            ? JSON.parse(apiData.videos)
-                            : Array.isArray(apiData.videos)
-                                ? apiData.videos
-                                : [];
-                    } catch (error) {
-                        console.error("Error parsing videos:", error);
-                    }
-                    // Convert relative paths to full URLs
-                    const fullVideoUrls = parsedVideos.map(video =>
-                        video.startsWith("http") ? video : `https://investorlands.com/${video}`
-                    );
-                    setVideoUrls(fullVideoUrls);
-                    // console.log("Video URLs:", videoUrls);
-                } else {
-                    console.error('Unexpected API response format:', response.data);
-                }
-            } catch (error) {
-                console.error('Error fetching user data:', error);
-            } finally {
-                setLoading(false);
+    const handleEnquiry = async () => {
+        try {
+            setLoading(true); // Show loading indicator
+    
+            // Get user data from AsyncStorage
+            const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
+            const userId = parsedUserData?.id; // Extract user ID safely
+    
+            if (!userId) {
+                console.error("User ID not found in stored userData.");
+                return;
             }
-        };
+    
+            const enquiryData = {
+                propertyid: propertyId,
+                userid: userId, 
+                city: propertyData.city || '',
+                state: propertyData.state || '',
+                propertytype: propertyData.propertytype,
+                cityofproperty: propertyData.propertytype,
+                mobilenumber: propertyData.propertytype,
+            };
+    
+            // Send enquiry request
+            const response = await axios.post("https://investorlands.com/api/sendenquiry", enquiryData);
+    
+            if (response.data.success) {
+                alert("Enquiry submitted successfully!");
+            } else {
+                alert("Failed to submit enquiry. Please try again.");
+            }
+        } catch (error) {
+            console.error("Error submitting enquiry:", error);
+            alert("An error occurred. Please try again.");
+        } finally {
+            setLoading(false); // Hide loading indicator
+        }
+    };
+    
+
+    const fetchPropertyData = async () => {
+        try {
+            const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
+            setLoggedinUserId(parsedUserData.id)
+            // Fetch user data from API
+            const response = await axios.get(`https://investorlands.com/api/property-details/${propertyId}`);
+            // console.log('API Response:', response.data);
+
+            if (response.data) {
+                const apiData = response.data.details;
+                setPropertyData(apiData);
+                // console.log('API apiData:', apiData);
+
+                // Set Profile Image, ensuring fallback to default avatar
+                if (apiData.thumbnail) {
+                    // console.log('API apiData.thumbnail:', apiData.thumbnail);
+                    setPropertyThumbnail(
+                        apiData.thumbnail.startsWith('http')
+                            ? apiData.thumbnail
+                            : `https://investorlands.com/assets/images/Listings/${apiData.thumbnail}`
+                    );
+                } else {
+                    setPropertyThumbnail(images.newYork);
+                }
+
+                if (apiData.gallery) {
+                    const galleryImages = JSON.parse(apiData.gallery).map((image) => ({
+                        id: Math.random().toString(36).substring(2, 11), // Generate a unique id for each image
+                        image: image.startsWith('http')
+                            ? image
+                            : `https://investorlands.com/${image.replace(/\\/g, '/')}`,
+                    }));
+                    setPropertyGallery(galleryImages);
+                }
+
+                let parsedVideos = [];
+                try {
+                    parsedVideos = typeof apiData.videos === 'string'
+                        ? JSON.parse(apiData.videos)
+                        : Array.isArray(apiData.videos)
+                            ? apiData.videos
+                            : [];
+                } catch (error) {
+                    console.error("Error parsing videos:", error);
+                }
+                // Convert relative paths to full URLs
+                const fullVideoUrls = parsedVideos.map(video =>
+                    video.startsWith("http") ? video : `https://investorlands.com/${video}`
+                );
+                setVideoUrls(fullVideoUrls);
+                // console.log("Video URLs:", videoUrls);
+            } else {
+                console.error('Unexpected API response format:', response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
 
         fetchPropertyData();
     }, [propertyId])
@@ -142,11 +184,11 @@ const PropertyDetails = () => {
                                 {propertyData.roleid == loggedinUserId &&
                                     <Text className={`inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-medium ring-1 ring-inset ${propertyData.status === 'published' ? ' bg-green-50  text-green-700  ring-green-600/20 ' : 'bg-red-50  text-red-700 ring-red-600/20'}`}>{propertyData.status}</Text>
                                 }
-                                <Image
+                                {/* <Image
                                     source={icons.heart}
                                     className="size-7"
                                     tintColor={"#191D31"}
-                                />
+                                /> */}
                                 <Image
                                     source={icons.send}
                                     className="size-7"
@@ -357,7 +399,7 @@ const PropertyDetails = () => {
                         </Text>
                     </View>
 
-                    <TouchableOpacity className="flex-1 flex flex-row items-center justify-center bg-yellow-800 py-3 rounded-full shadow-md shadow-zinc-400">
+                    <TouchableOpacity onPress={() => handleEnquiry()} className="flex-1 flex flex-row items-center justify-center bg-yellow-800 py-3 rounded-full shadow-md shadow-zinc-400">
                         <Text className="text-white text-lg text-center font-rubik-bold">
                             Book Now
                         </Text>

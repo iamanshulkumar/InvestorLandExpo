@@ -47,12 +47,23 @@ const TabsLayout = () => {
                 }}
             />
             <Tabs.Screen
-                name="explore"
+                name="myproperties"
                 options={{
-                    title: "Explore",
+                    title: "My Properties",
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
-                        <TabIcon focused={focused} icon={icons.search} title="Explore" />
+                        <TabIcon focused={focused} icon={icons.search} title="My Properties" />
+                    ),
+                }}
+            />
+            
+            <Tabs.Screen
+                name="addproperty"
+                options={{
+                    title: "Add Property",
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => (
+                        <TabIcon focused={focused} icon={icons.addproperty} title="Add Property" />
                     ),
                 }}
             />
@@ -63,16 +74,6 @@ const TabsLayout = () => {
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
                         <TabIcon focused={focused} icon={icons.person} title="Dashboard" />
-                    ),
-                }}
-            />
-            <Tabs.Screen
-                name="addproperty"
-                options={{
-                    title: "Add Property",
-                    headerShown: false,
-                    tabBarIcon: ({ focused }) => (
-                        <TabIcon focused={focused} icon={icons.addproperty} title="Add Property" />
                     ),
                 }}
             />

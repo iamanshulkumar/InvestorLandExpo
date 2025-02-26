@@ -412,9 +412,9 @@ const Addproperty = () => {
                 <Text style={{ fontSize: 16, marginRight: 10, textAlign: 'center', fontFamily: 'Rubik-Medium', color: '#4A4A4A' }}>
                     Add New Property
                 </Text>
-                <Link href={'/notifications'}>
+                <TouchableOpacity onPress={() => router.push('/notifications')}>
                     <Image source={icons.bell} className='size-6' />
-                </Link>
+                </TouchableOpacity>
             </View>
             <View style={styles.container}>
 

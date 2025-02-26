@@ -21,7 +21,7 @@ const Notifications = () => {
             if (response.data?.notifications) {
                 const apiData = response.data.notifications;
                 setNotificationData(apiData);
-
+                // console.log('notificationData', notificationData);
                 // Load read/unread status from AsyncStorage
                 const storedStatus = await AsyncStorage.getItem('readStatus');
                 if (storedStatus) {

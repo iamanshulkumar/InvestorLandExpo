@@ -67,7 +67,7 @@ const Index = () => {
         setLoading(true);
         try {
             const response = await axios.get(`https://investorlands.com/api/property-listings`);
-            if (response.data) {
+            if (response.data.data) {
                 const apiData = response.data.data;
                 setListingData(apiData);
                 // console.log('ApiData: ',apiData);

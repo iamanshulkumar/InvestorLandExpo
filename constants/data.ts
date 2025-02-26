@@ -76,7 +76,7 @@ export const settings = [
   {
     title: "My Properties",
     icon: icons.shield,
-    onPress: '/dashboard/myproperties',
+    onPress: '/myproperties',
 
   },
   {
