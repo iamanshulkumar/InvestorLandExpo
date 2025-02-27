@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View, Image, FlatList } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, Image, FlatList, ActivityIndicator } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
@@ -66,7 +66,10 @@ const Myproperties = () => {
 
       <View className="mt-3 mb-12">
         {loading ? (
-          <Text className="text-center text-gray-500 mt-10">Loading properties...</Text>
+          <View>
+            <ActivityIndicator size="large" color="#8a4c00" style={{ marginTop: 300 }} />
+            <Text className="text-center text-gray-500 mt-10">Loading properties...</Text>
+          </View>
         ) : userPropertyData.length === 0 ? (
           <Text className="text-center text-gray-500 mt-10">No properties found.</Text>
         ) : (

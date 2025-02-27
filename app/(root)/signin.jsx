@@ -43,6 +43,7 @@ const Signin = () => {
   
       if (response.ok && data.success) {
         // Store the token and full user data in AsyncStorage
+        // console.log('userToken',data.token);
         await AsyncStorage.setItem('userToken', data.token);
         await AsyncStorage.setItem('userData', JSON.stringify(data.data));
   
