@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, TextInput, ScrollView, Button, ActivityIndicator, FlatList } from 'react-native'
+import { Image, StyleSheet, Text, TouchableOpacity, View, TextInput, ScrollView, ActivityIndicator, Platform, FlatList } from 'react-native'
 import React, { useState, useRef, useEffect } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import icons from '@/constants/icons';
@@ -9,19 +9,19 @@ import { Link, router, useLocalSearchParams } from 'expo-router';
 import axios from 'axios';
 import images from "@/constants/images";
 import Videobox from '../../../../components/Videobox';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import 'react-native-get-random-values';
+import * as DocumentPicker from 'expo-document-picker';
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import Constants from "expo-constants";
+import MapView, { Marker } from "react-native-maps";
 
 
 const Editproperty = () => {
     const { id } = useLocalSearchParams();
-    const [step1Data, setStep1Data] = useState({ name: '', description: '', thumbnail: images.avatar });
-    const [step2Data, setStep2Data] = useState({
-        Price: '',
-        squarefoot: '',
-        Bathroom: '',
-        Floor: '',
-        City: '',
-        Address: '',
-    });
+    const GOOGLE_MAPS_API_KEY = Constants.expoConfig.extra.GOOGLE_MAPS_API_KEY;
+    const [step1Data, setStep1Data] = useState({ property_name: '', description: '', thumbnail: images.avatar });
+    const [step2Data, setStep2Data] = useState({ Price: '', historydate: [], squarefoot: '', Bathroom: '', Floor: '', City: '', Address: '' });
     const [step3Data, setStep3Data] = useState({ gallery: [], videos: [] });
     const textareaRef = useRef(null);
     const [selectedCategory, setSelectedCategory] = useState(null);
@@ -33,49 +33,23 @@ const Editproperty = () => {
     const [propertyGallery, setPropertyGallery] = useState([]); // Initialize as an empty array
     const [propertyVideos, setPropertyVideos] = useState([]);
     const [errors, setErrors] = useState(false);
-
-    const onNextStep = () => {
-        if (!isValid) {
-            setErrors(true);
-        } else {
-            setErrors(false);
-        }
-    };
-
+    const [show, setShow] = useState(false);
+    const [price, setPrice] = useState('');
+    const [selectedDate, setSelectedDate] = useState('');
+    const [amenity, setAmenity] = useState('');
     const [image, setImage] = useState(null);
-
-    const pickImage = async () => {
-        // No permissions request is necessary for launching the image library
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 1,
-        });
-
-        console.log(result);
-
-        if (!result.canceled) {
-            setImage(result.assets[0].uri);
-        }
-    };
-
     const [videos, setVideos] = useState([]);
-
-    const pickVideo = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-            allowsEditing: true,
-            quality: 1,
-        });
-
-        console.log(result);
-
-        if (!result.canceled) {
-            setVideos([...videos, result.assets[0]]);
-        }
-    };
-
+    const [amenities, setAmenities] = useState([]);
+    const [region, setRegion] = useState({
+        latitude: 20.5937,
+        longitude: 78.9629,
+        latitudeDelta: 0.015,
+        longitudeDelta: 0.0121,
+    });
+    const [coordinates, setCoordinates] = useState({
+        latitude: "",
+        longitude: "",
+    });
     const buttonTextStyle = {
         paddingInline: 20,
         paddingBlock: 5,
@@ -83,6 +57,9 @@ const Editproperty = () => {
         backgroundColor: 'lightgray',
         color: 'black',
     };
+    const [galleryImages, setGalleryImages] = useState([]);
+    const [propertyDocuments, setPropertyDocuments] = useState([]);
+    const [masterPlanDoc, setMasterPlanDoc] = useState([]);
 
     const categories = [
         { label: 'Apartment', value: 'Apartment' },
@@ -97,6 +74,191 @@ const Editproperty = () => {
         { label: 'Published', value: 'published' },
     ];
 
+    const onNextStep = () => {
+        if (!isValid) {
+            setErrors(true);
+        } else {
+            setErrors(false);
+        }
+    };
+
+    const pickMainImage = async () => {
+        if (!(await requestPermissions())) return;
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result?.canceled) {
+            setMainImage(result.assets[0].uri);
+        }
+    };
+
+    const pickGalleryImages = async () => {
+        if (!(await requestPermissions())) return;
+
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsMultipleSelection: true,
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            const selectedImages = result.assets.map(asset => asset.uri);
+            setGalleryImages(prevImages => [...prevImages, ...selectedImages]);
+        }
+    };
+
+    // Handle Date Change
+    const handleDateChange = (event, date) => {
+        setShow(false);
+        if (date) {
+            const formattedDate = date.toISOString().split('T')[0]; // Convert to YYYY-MM-DD
+            setSelectedDate(formattedDate);
+        }
+    };
+
+    // Add Price History Entry
+    const addPriceHistory = () => {
+        if (selectedDate && step2Data.Price) {
+            const newHistoryEntry = { dateValue: selectedDate, priceValue: step2Data.Price };
+
+            setStep2Data(prevData => ({
+                ...prevData,
+                historydate: [...(prevData.historydate || []), newHistoryEntry],  // Ensure historydate exists
+                Price: "",  // Clear input after adding
+            }));
+
+            setSelectedDate('');
+        }
+    };
+
+    const handleAddAmenity = () => {
+        if (amenity.trim() !== '') {
+            setAmenities([...amenities, amenity.trim()]);
+            setAmenity('');
+        }
+    };
+
+    const pickVideo = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+            allowsMultipleSelection: true,
+        });
+
+        if (!result.canceled) {
+            const selectedVideos = result.assets;
+
+            const videoDataPromises = selectedVideos.map(async (video) => {
+                try {
+                    const thumbnail = await VideoThumbnails.getThumbnailAsync(video.uri, {
+                        time: 1000, // Capture frame at 1 sec
+                    });
+
+                    return { id: video.uri, uri: video.uri, thumbnailImages: thumbnail.uri };
+                } catch (error) {
+                    console.error("Thumbnail generation error:", error);
+                    return { id: video.uri, uri: video.uri, thumbnailImages: null };
+                }
+            });
+
+            const videoDataArray = await Promise.all(videoDataPromises);
+            // console.log("Final Video List:", videoDataArray); // Debugging Output
+
+            setVideos(prevVideos => [...prevVideos, ...videoDataArray]);
+        }
+    };
+
+    const pickDocument = async () => {
+        let result = await DocumentPicker.getDocumentAsync({
+            type: 'application/pdf',
+            multiple: true, // Enable multiple selection
+        });
+
+        if (result.canceled) return;
+
+        // Ensure result is an array (Expo returns a single object if only one file is selected)
+        const selectedDocuments = Array.isArray(result.assets) ? result.assets : [result];
+
+        // Format documents to include a dummy thumbnail and prevent duplicates
+        const newDocuments = selectedDocuments.map(doc => ({
+            uri: doc.uri,
+            name: doc.name || 'Unnamed Document',
+            thumbnail: 'https://cdn-icons-png.flaticon.com/512/337/337946.png', // Dummy PDF icon
+        }));
+
+        setPropertyDocuments(prevDocs => [...prevDocs, ...newDocuments]);
+    };
+
+    // Function to remove a document
+    const removeDocument = (index) => {
+        setPropertyDocuments(prevDocs => prevDocs.filter((_, i) => i !== index));
+    };
+
+    const pickMasterPlan = async () => {
+        let result = await DocumentPicker.getDocumentAsync({
+            type: ['application/pdf', 'image/*'], // Allow PDFs and images
+            multiple: true, // Enable multiple selection
+        });
+
+        if (result.canceled) return;
+
+        // Ensure result is an array (Expo returns a single object if only one file is selected)
+        const selectedDocuments = Array.isArray(result.assets) ? result.assets : [result];
+
+        // Format documents to include a dummy thumbnail for PDFs and the actual preview for images
+        const newDocuments = selectedDocuments.map(doc => ({
+            uri: doc.uri,
+            name: doc.name || 'Unnamed Document',
+            thumbnail: doc.mimeType.startsWith('image') ? doc.uri : 'https://cdn-icons-png.flaticon.com/512/337/337946.png', // Use actual image for images, PDF icon for PDFs
+        }));
+
+        setMasterPlanDoc(prevDocs => [...prevDocs, ...newDocuments]);
+    };
+
+    // Function to remove a document
+    const removeMasterPlan = (index) => {
+        setMasterPlanDoc(prevDocs => prevDocs.filter((_, i) => i !== index));
+    };
+
+    // Function to handle location selection from Google Places
+    const handlePlaceSelect = (data, details = null) => {
+        if (details?.geometry?.location) {
+            const { lat, lng } = details.geometry.location;
+            setRegion({
+                latitude: lat,
+                longitude: lng,
+                latitudeDelta: 0.015,
+                longitudeDelta: 0.0121,
+            });
+
+            // Store selected coordinates
+            setCoordinates({
+                latitude: lat.toString(),
+                longitude: lng.toString(),
+            });
+        }
+    };
+
+    // Function to handle manual selection on the map
+    const handleMapPress = (e) => {
+        const { latitude, longitude } = e.nativeEvent.coordinate;
+        setRegion({
+            latitude,
+            longitude,
+            latitudeDelta: 0.015,
+            longitudeDelta: 0.0121,
+        });
+
+        // Store manual coordinates
+        setCoordinates({
+            latitude: latitude.toString(),
+            longitude: longitude.toString(),
+        });
+    };
+
 
     // Fetch Property Data
     const fetchPropertyData = async () => {
@@ -109,7 +271,7 @@ const Editproperty = () => {
                 setPropertyData(apiData);
 
                 setStep1Data({
-                    name: apiData.property_name || '',
+                    property_name: apiData.property_name || '',
                     description: apiData.discription || '',
                 });
 
@@ -161,7 +323,6 @@ const Editproperty = () => {
         }
     };
 
-
     useEffect(() => {
         if (id) {
             fetchPropertyData();
@@ -173,7 +334,7 @@ const Editproperty = () => {
             // console.log("Status from API:", propertyData.status); // Debugging line
 
             setStep1Data({
-                name: propertyData.property_name || '',
+                property_name: propertyData.property_name || '',
                 description: propertyData.discription || '',
             });
 
@@ -233,151 +394,350 @@ const Editproperty = () => {
                 </TouchableOpacity>
             </View>
 
-
-            <View className="flex justify-center items-center pt-3">
-                <Text className="font-rubik text-lg">{step1Data.name}</Text>
-                <Text className={`inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-rubik ring-1 ring-inset ${selectedStatus === 'published' ? ' bg-green-50  text-green-700  ring-green-600/20 ' : 'bg-red-50  text-red-700 ring-red-600/20'}`}>{selectedStatus}</Text>
+            <View className="flex justify-between items-center pt-3 flex-row">
+                <Text className="font-rubik-bold text-lg">{step1Data.property_name}</Text>
+                <Text className={`inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-rubik-bold border ${selectedStatus === 'published' ? ' bg-green-50  text-green-700  border-green-600 ' : 'bg-red-50  text-red-700 border-red-600'}`}>{selectedStatus}</Text>
             </View>
 
             <View style={styles.container}>
                 <ProgressSteps>
                     <ProgressStep label="General" nextBtnTextStyle={buttonTextStyle}
-                        onNext={() => onNextStep(1)}
-                        errors={errors}
+                    // onNext={() => onNextStep(1)}
+                    // errors={errors}
                     >
                         <View style={styles.stepContent}>
+                            {/* enter property name */}
                             <Text style={styles.label}>Property Name</Text>
-                            <TextInput style={styles.input} placeholder="Enter property name" value={step1Data.name} onChangeText={text => setStep1Data({ ...step1Data, name: text })} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter property name"
+                                value={step1Data.property_name}
+                                onChangeText={text => setStep1Data({ ...step1Data, property_name: text })}
+                            />
 
+                            {/* enter description */}
                             <Text style={styles.label}>Property Description</Text>
-                            <TextInput style={styles.textarea} value={step1Data.description} onChangeText={text => setStep1Data({ ...step1Data, description: text })} maxLength={120} placeholder="Enter property description" multiline numberOfLines={5} />
+                            <TextInput
+                                style={styles.textarea}
+                                value={step1Data.description}
+                                onChangeText={text => setStep1Data({ ...step1Data, description: text })} maxLength={120}
+                                placeholder="Enter property description"
+                                multiline numberOfLines={5}
+                            />
 
+                            {/* enter thumbnail */}
                             <Text style={styles.label}>Property Thumbnail</Text>
                             <View className="flex flex-row">
-                                <TouchableOpacity onPress={pickImage} style={styles.dropbox} className="m-3">
+                                <TouchableOpacity onPress={pickMainImage} style={styles.dropbox} className="m-3">
                                     <Text style={{ textAlign: 'center' }}>Pick an image from gallery</Text>
                                 </TouchableOpacity>
                                 <Image source={{ uri: propertyThumbnail }} style={styles.image} />
                             </View>
 
-                            <Text style={styles.label}>Select category</Text>
+                            {/* select category */}
+                            <Text style={styles.label}>Select a category</Text>
                             <View style={styles.pickerContainer}>
                                 <RNPickerSelect value={selectedCategory} onValueChange={(value) => setSelectedCategory(value)} items={categories} style={pickerSelectStyles} placeholder={{ label: 'Choose an option...', value: null }} />
                             </View>
+
+                            {/* enter near by location */}
+                            <Text style={styles.label}>Near By Location</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter near by location"
+                                value={step1Data.nearbylocation}
+                                onChangeText={text => setStep1Data({ ...step1Data, nearbylocation: text })}
+                            />
+
+                            {/* enter rental income */}
+                            <Text style={styles.label}>Approx Rental Income</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter approx rental income"
+                                value={step1Data.rentalIncome} // Create a separate state variable
+                                onChangeText={text => setStep1Data({ ...step1Data, rentalIncome: text })}
+                            />
                         </View>
                     </ProgressStep>
-                    <ProgressStep label="Details" nextBtnTextStyle={buttonTextStyle} previousBtnTextStyle={buttonTextStyle}>
+
+                    <ProgressStep label="Details" nextBtnTextStyle={buttonTextStyle}
+                        previousBtnTextStyle={buttonTextStyle}
+                    // onNext={() => onNextStep(2)}
+                    // errors={errors
+                    >
                         <View>
                             <Text style={{ textAlign: 'center', fontFamily: 'Rubik-Bold' }}>Pricing & Other Details</Text>
                         </View>
                         <View style={styles.stepContent}>
-                            <Text style={styles.label}>Property Price</Text>
+
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <View style={{ flex: 1, marginRight: 10 }}>
+
+                                    {/* enter property price */}
+                                    <Text style={styles.label}>Property Price</Text>
+
+                                    {/* Enter Price */}
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Property Price"
+                                        value={price}  // <-- Update here
+                                        onChangeText={setPrice}  // <-- Use setPrice directly
+                                        keyboardType="numeric"
+                                    />
+                                </View>
+
+                                <View style={{ flex: 1 }}>
+
+                                    {/* Select Date */}
+                                    <Text style={styles.label}>Price History</Text>
+                                    <TouchableOpacity onPress={() => setShow(true)}>
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="YYYY-MM-DD"
+                                            value={selectedDate}
+                                            editable={false}
+                                        />
+                                    </TouchableOpacity>
+
+                                    {show && (
+                                        <DateTimePicker
+                                            value={new Date()}
+                                            mode="date"
+                                            display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
+                                            onChange={handleDateChange}
+                                        />
+                                    )}
+                                </View>
+                            </View>
+
+                            {/* Show Table */}
+                            <View style={{ flexGrow: 1, minHeight: 1 }}>
+                                <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+                                    {step2Data.historydate?.map((item, index) => (
+                                        <View key={index} style={styles.tableRow}>
+                                            <Text style={styles.tableCell}>{item.priceValue}</Text>
+                                            <Text style={styles.tableCell}>{item.dateValue}</Text>
+                                        </View>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                            {/* Add to Price History */}
+                            <TouchableOpacity style={styles.addButton} onPress={addPriceHistory}>
+                                <Text style={styles.addButtonText}>Add Price History</Text>
+                            </TouchableOpacity>
+
+                            {/* enter amenities */}
+                            <Text style={styles.label}>Features & Amenities</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Property Price"
-                                value={step2Data.Price}
-                                onChangeText={text => setStep2Data({ ...step2Data, Price: text })}
+                                placeholder="Enter to Add Amenities"
+                                value={amenity}
+                                onChangeText={setAmenity}
+                                onSubmitEditing={handleAddAmenity} // Adds item on Enter key press
                             />
+                            <View style={{ flexGrow: 1, minHeight: 1 }}>
+                                <FlatList
+                                    data={amenities}
+                                    keyExtractor={(item, index) => index.toString()}
+                                    horizontal
+                                    nestedScrollEnabled={true}
+                                    renderItem={({ item }) => (
+                                        <View style={styles.amenityItem}>
+                                            <Text className='font-rubik-bold px-2 capitalize text-nowrap '>{item}</Text>
+                                            <TouchableOpacity onPress={() => setAmenities(amenities.filter(a => a !== item))}>
+                                                <Text style={styles.removeBtn}>❌</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                />
+                            </View>
 
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                {/* enter squre foot area */}
                                 <View style={{ flex: 1, marginRight: 5 }}>
                                     <Text style={styles.label}>Square Foot</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Square Foot"
-                                        value={step2Data.squarefoot}
-                                        onChangeText={text => setStep2Data({ ...step2Data, squarefoot: text })}
-                                    />
+                                    <TextInput style={styles.input} placeholder="Square Foot" value={step2Data.sqft} onChangeText={text => setStep2Data({ ...step2Data, sqft: text })} />
                                 </View>
+
+                                {/* enter number of bathrooms */}
                                 <View style={{ flex: 1, marginLeft: 5 }}>
                                     <Text style={styles.label}>Bathroom</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Bathroom"
-                                        value={step2Data.Bathroom}
-                                        onChangeText={text => setStep2Data({ ...step2Data, Bathroom: text })}
-                                    />
+                                    <TextInput style={styles.input} placeholder="Bathroom" value={step2Data.bathroom} onChangeText={text => setStep2Data({ ...step2Data, bathroom: text })} />
                                 </View>
                             </View>
 
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                {/* enter number of floors */}
                                 <View style={{ flex: 1, marginRight: 5 }}>
                                     <Text style={styles.label}>Floor</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Floor"
-                                        value={step2Data.Floor}
-                                        onChangeText={text => setStep2Data({ ...step2Data, Floor: text })}
-                                    />
+                                    <TextInput style={styles.input} placeholder="Floor" value={step2Data.floor} onChangeText={text => setStep2Data({ ...step2Data, floor: text })} />
                                 </View>
+
+                                {/* enter property city */}
                                 <View style={{ flex: 1, marginLeft: 5 }}>
                                     <Text style={styles.label}>City</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Enter City"
-                                        value={step2Data.City}
-                                        onChangeText={text => setStep2Data({ ...step2Data, City: text })}
-                                    />
+                                    <TextInput style={styles.input} placeholder="Enter City" value={step2Data.city} onChangeText={text => setStep2Data({ ...step2Data, city: text })} />
                                 </View>
                             </View>
 
+                            {/* enter property address */}
                             <Text style={styles.label}>Property Address</Text>
-                            <TextInput
-                                style={styles.textarea}
-                                placeholder="Property Address"
-                                value={step2Data.Address}
-                                onChangeText={text => setStep2Data({ ...step2Data, Address: text })}
-                                multiline
-                                numberOfLines={5}
-                                maxLength={120}
-                            />
+                            <TextInput style={styles.textarea} placeholder="Property Address" value={step2Data.officeaddress} onChangeText={text => setStep2Data({ ...step2Data, officeaddress: text })} multiline numberOfLines={5} maxLength={120} />
+
+                            <Text style={styles.label}>Pin Location in Map</Text>
+                            <View styles={styles.mapTextInput}>
+                                <GooglePlacesAutocomplete
+                                    placeholder="Search location"
+                                    fetchDetails={true}
+                                    onPress={handlePlaceSelect}
+                                    onFail={(error) => console.error(error)}
+                                    query={{
+                                        key: GOOGLE_MAPS_API_KEY,
+                                        language: "en",
+                                    }}
+                                    styles={styles.mapTextInput}
+                                />
+                            </View>
+
+                            <Text style={{ marginVertical: 10, fontWeight: "bold" }}>Pin Location on Map</Text>
+                            <MapView
+                                style={{ height: 300, borderRadius: 10 }}
+                                region={region}
+                                onPress={handleMapPress}
+                            >
+                                <Marker coordinate={region} />
+                            </MapView>
+
 
                         </View>
                     </ProgressStep>
+
                     <ProgressStep label="Documents" nextBtnTextStyle={buttonTextStyle} previousBtnTextStyle={buttonTextStyle}>
 
-                        <Text style={styles.label}>Property Gallery</Text>
-                        <TouchableOpacity onPress={pickImage} style={styles.dropbox}>
-                            <Text style={{ textAlign: 'center' }}>Pick an image from gallery</Text>
-                        </TouchableOpacity>
-                        <ScrollView horizontal style={{ marginTop: 10 }}>
-                            {propertyGallery && propertyGallery.map((img, index) => (
-                                <Image key={index} source={{ uri: img }} style={[styles.image, { marginRight: 10 }]} />
-                            ))}
-                        </ScrollView>
+                        {/* select status */}
+                        <View style={styles.stepContent}>
+                            <Text style={styles.label}>Select Status</Text>
+                            <View style={styles.pickerContainer}>
+                                <RNPickerSelect onValueChange={(value) => setSelectedValue(value)} items={status} style={pickerSelectStyles} placeholder={{ label: 'Choose an option...', value: null }} />
+                            </View>
+                        </View>
 
+                        {/* upload gallery */}
+                        <Text style={styles.label}>Property Gallery</Text>
+                        <View style={{ flexGrow: 1, minHeight: 1 }}>
+                            <FlatList
+                                data={galleryImages}
+                                horizontal
+                                keyExtractor={(item, index) => index.toString()}
+                                nestedScrollEnabled={true}
+                                contentContainerStyle={styles.fileContainer}
+                                renderItem={({ item, index }) => (
+                                    <View style={styles.thumbnailBox} className="border border-gray-300">
+                                        <Image source={{ uri: item }} style={styles.thumbnail} />
+                                        <Text className="text-center font-rubik-bold">Image: {index + 1}</Text>
+
+                                        <TouchableOpacity
+                                            onPress={() => setGalleryImages(galleryImages.filter((_, i) => i !== index))}
+                                            style={styles.deleteButton}
+                                        >
+                                            <Text className="text-white">X</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                            />
+                        </View>
+                        <TouchableOpacity onPress={pickGalleryImages} style={styles.dropbox}>
+                            <Text style={{ textAlign: 'center' }}>Pick images from gallery</Text>
+                        </TouchableOpacity>
+
+
+
+
+                        {/* Upload video */}
                         <View style={styles.stepContent}>
                             <Text style={styles.label}>Upload Videos</Text>
+                            <View style={{ flexGrow: 1, minHeight: 1 }}>
+                                <FlatList
+                                    data={videos}
+                                    horizontal
+                                    keyExtractor={(item) => item.id.toString()}
+                                    nestedScrollEnabled={true}
+                                    contentContainerStyle={styles.fileContainer}
+                                    renderItem={({ item, index }) => (
+                                        <View style={styles.thumbnailBox} className="border border-gray-300">
+                                            <Image
+                                                source={{ uri: `${item.thumbnail}?update=${new Date().getTime()}` }}
+                                                style={styles.thumbnail}
+                                            />
+                                            <Text className="text-center font-rubik-bold">Video {index + 1}</Text>
+
+                                            <TouchableOpacity
+                                                onPress={() => setVideos(videos.filter((v) => v.id !== item.id))}
+                                                style={styles.deleteButton}
+                                            >
+                                                <Text className="text-white">X</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                />
+                            </View>
+
                             <TouchableOpacity onPress={pickVideo} style={styles.dropbox}>
                                 <Text style={{ textAlign: 'center' }}>Pick videos from gallery</Text>
                             </TouchableOpacity>
-
-                            {propertyVideos.length > 0 ? (
-                                <View className=" mt-4">
-                                    <FlatList
-                                        data={propertyVideos}
-                                        horizontal
-                                        showsHorizontalScrollIndicator={false}
-                                        keyExtractor={(_, index) => `video-${index}`}
-                                        renderItem={({ item }) => <Videobox url={item} />}
-                                    />
-                                </View>
-                            ) : (
-                                <View className="mt-7 justify-center items-center">
-                                    <Text className="text-gray-400 text-lg">No videos available</Text>
-                                </View>
-                            )}
                         </View>
 
-                        <Text style={styles.label}>Property Status</Text>
-                        <View style={styles.pickerContainer}>
-                            <RNPickerSelect
-                                value={selectedStatus}
-                                onValueChange={(value) => setSelectedStatus(value)}
-                                items={status}
-                                style={pickerSelectStyles}
-                                placeholder={{ label: 'Choose an option...', value: null }}
-                            />
+                        <View style={styles.stepContent}>
+                            <Text style={styles.label}>Upload Property Documents</Text>
+                            <View style={{ flexGrow: 1, minHeight: 1 }}>
+                                <FlatList
+                                    data={propertyDocuments}
+                                    horizontal
+                                    nestedScrollEnabled={true}
+                                    keyExtractor={(_, index) => index.toString()}
+                                    contentContainerStyle={styles.fileContainer}
+                                    renderItem={({ item, index }) => (
+                                        <View style={styles.thumbnailBox} className="border border-gray-300">
+                                            <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
+                                            <Text className="text-center font-rubik-bold">Doc {index + 1}</Text>
+
+                                            <TouchableOpacity onPress={() => removeDocument(index)} style={styles.deleteButton}>
+                                                <Text className="text-white">X</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                />
+                            </View>
+                            <TouchableOpacity onPress={pickDocument} style={styles.dropbox}>
+                                <Text style={{ textAlign: 'center' }}>Pick Doc from gallery</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* upload document */}
+                        <View style={styles.stepContent}>
+                            <Text style={styles.label}>Upload Master Plan of Property</Text>
+                            <View style={{ flexGrow: 1, minHeight: 1 }}>
+                                <FlatList
+                                    data={masterPlanDoc}
+                                    horizontal
+                                    nestedScrollEnabled={true}
+                                    keyExtractor={(_, index) => index.toString()}
+                                    contentContainerStyle={styles.fileContainer}
+                                    renderItem={({ item, index }) => (
+                                        <View style={styles.thumbnailBox} className="border border-gray-300">
+                                            <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
+                                            <Text className="text-center font-rubik-bold">Plan {index + 1}</Text>
+
+                                            <TouchableOpacity onPress={() => removeMasterPlan(index)} style={styles.deleteButton}>
+                                                <Text className="text-white">X</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                />
+                            </View>
+                            <TouchableOpacity onPress={pickMasterPlan} style={styles.dropbox}>
+                                <Text style={{ textAlign: 'center' }}>Pick Master Plan from gallery</Text>
+                            </TouchableOpacity>
                         </View>
 
                     </ProgressStep>
@@ -392,14 +752,37 @@ export default Editproperty
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingBottom: 0,
+        padding: 0,
+        paddingBottom: 40,
         backgroundColor: '#fff',
+    },
+    stepContent: {
+        paddingBottom: 20,
+    },
+    fileContainer: {
+        padding: 5,
+        backgroundColor: '#fff',
+        flexDirection: 'row',
+        display: 'flex',
+    },
+    deleteButton: {
+        paddingHorizontal: 7,
+        color: 'white',
+        borderWidth: 1,
+        borderRadius: 7,
+        borderColor: 'red',
+        marginLeft: 10,
+        backgroundColor: 'red',
+        width: 25,
+        position: 'absolute',
+        top: 0,
+        right: 0,
     },
     label: {
         fontSize: 16,
         marginHorizontal: 5,
-        marginTop: 10
-
+        marginTop: 10,
+        fontWeight: 'bold',
     },
     input: {
         width: '100%',
@@ -409,6 +792,30 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         marginBottom: 10,
         marginTop: 10
+    },
+    amenityItem: {
+        flexDirection: 'row',
+        justifyContent: 'start',
+        padding: 5,
+        borderRadius: 50,
+        marginRight: 5,
+        borderColor: 'gray',
+        backgroundColor: '#edf5ff',
+
+    },
+    removeBtn: {
+        color: 'red',
+        fontWeight: 'bold',
+        fontSize: 12,
+        marginEnd: 5,
+    },
+    mapTextInput: {
+        width: '100%',
+        height: 50,
+        borderColor: "#edf5ff",
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: 10,
     },
     editor: {
         flex: 1,
@@ -434,48 +841,66 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 10,
-        padding: 5,
-        marginTop: 10,
+    },
+    thumbnail: {
+        width: 73,
+        height: 70,
+        borderRadius: 10,
+    },
+    thumbnailBox: {
+        width: 75,
+        height: 95,
+        borderRadius: 10,
+        marginRight: 10,
     },
     dropbox: {
-        height: 100,
-        padding: 15,
+        height: 80,
+        padding: 5,
         borderStyle: 'dashed',
         borderWidth: 2,
         borderColor: '#edf5ff',
         backgroundColor: '#edf5ff',
         borderRadius: 10,
         marginTop: 10,
+        marginRight: 10,
         justifyContent: 'center',
         alignContent: 'center',
+        flex: 1,
     },
+    map: {
+        width: '100%',
+        height: 150,
+        marginTop: 10
+    },
+    addButton: {
+        backgroundColor: '#D3D3D3', padding: 10, marginTop: 10, borderRadius: 5
+    },
+    addButtonText: { color: 'black', textAlign: 'center', fontWeight: 'bold' },
+    tableRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 10, },
+    tableCell: { flex: 1, textAlign: 'center', borderyWidth: 1, },
     pickerContainer: {
         borderRadius: 10, // Apply borderRadius here
         overflow: 'hidden',
         backgroundColor: '#edf5ff',
         marginTop: 10,
-        marginBottom: 20,
+        // marginBottom: 20,
     },
-});
 
+});
 const pickerSelectStyles = StyleSheet.create({
     inputIOS: {
         fontSize: 16,
-        paddingVertical: 12,
         paddingHorizontal: 10,
-        borderWidth: 1,
-        borderColor: 'gray',
-        borderRadius: 8,
+        backgroundColor: '#edf5ff',
+        borderRadius: 20,
         color: 'black',
         paddingRight: 30,
-        borderRadius: 10,
-
     },
     inputAndroid: {
         fontSize: 16,
         paddingHorizontal: 10,
         backgroundColor: '#edf5ff',
-        borderRadius: 40,
+        borderRadius: 20,
         color: 'black',
         paddingRight: 30,
     },

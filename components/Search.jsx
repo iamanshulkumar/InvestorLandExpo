@@ -117,7 +117,7 @@ const Search = () => {
                 }}
             >
                 <View>
-                    <Text className="text-lg font-bold text-black-300">Filter</Text>
+                    <Text className="text-lg font-rubik-bold text-black-300">Filter</Text>
                     <RNPickerSelect
                         onValueChange={(value) => setSelectedCity(value)}
                         items={cityData.length > 0 ? cityData.map((city, index) => ({
@@ -131,7 +131,7 @@ const Search = () => {
 
 
 
-                    <Text className="text-lg font-bold text-black-300 mt-5">Price Range</Text>
+                    <Text className="text-lg font-rubik-bold text-black-300 mt-5">Price Range</Text>
                     <View className="flex flex-row items-center justify-between mt-2">
                         <TextInput
                             placeholder="Min"
@@ -150,7 +150,7 @@ const Search = () => {
                         />
                     </View>
 
-                    <Text className="text-lg font-bold text-black-300 mt-5">Square Feet</Text>
+                    <Text className="text-lg font-rubik-bold text-black-300 mt-5">Square Feet</Text>
                     <View className="flex flex-row items-center justify-between mt-2">
                         <TextInput
                             placeholder="Min"
@@ -169,7 +169,7 @@ const Search = () => {
                         />
                     </View>
 
-                    <Text className="text-lg font-bold text-black-300 mt-5">Property Type</Text>
+                    <Text className="text-lg font-rubik-bold text-black-300 mt-5">Property Type</Text>
                     <RNPickerSelect
                         onValueChange={(value) => setSelectedPropertyType(value)}
                         items={categoryData.length > 0 ? categoryData.map((cat, index) => ({
@@ -184,7 +184,7 @@ const Search = () => {
 
 
                     <TouchableOpacity onPress={handleSubmit} className="p-2 rounded-lg bg-yellow-800 mt-5">
-                        {loading ? <ActivityIndicator color="white" /> : <Text className="font-bold text-white text-center">Apply Filters</Text>}
+                        {loading ? <ActivityIndicator color="white" /> : <Text className="font-rubik-bold text-white text-center">Apply Filters</Text>}
                     </TouchableOpacity>
                 </View>
             </RBSheet>

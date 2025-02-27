@@ -182,7 +182,7 @@ const PropertyDetails = () => {
 
                             <View className="flex flex-row items-center gap-3">
                                 {propertyData.roleid == loggedinUserId &&
-                                    <Text className={`inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-medium ring-1 ring-inset ${propertyData.status === 'published' ? ' bg-green-50  text-green-700  ring-green-600/20 ' : 'bg-red-50  text-red-700 ring-red-600/20'}`}>{propertyData.status}</Text>
+                                    <Text className={`inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-rubik ring-1 ring-inset ${propertyData.status === 'published' ? ' bg-green-50  text-green-700  ring-green-600/20 ' : 'bg-red-50  text-red-700 ring-red-600/20'}`}>{propertyData.status}</Text>
                                 }
                                 {/* <Image
                                     source={icons.heart}

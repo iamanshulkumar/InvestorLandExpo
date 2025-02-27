@@ -58,7 +58,7 @@ const Myproperties = () => {
         <TouchableOpacity onPress={() => router.back()} className="flex-row bg-gray-300 rounded-full w-11 h-11 items-center justify-center">
           <Image source={icons.backArrow} className="w-5 h-5" />
         </TouchableOpacity>
-        <Text className="text-lg mr-2 text-center font-medium text-gray-700">My Properties</Text>
+        <Text className="text-lg mr-2 text-center font-rubik text-gray-700">My Properties</Text>
         <TouchableOpacity onPress={() => router.push('/notifications')}>
           <Image source={icons.bell} className='size-6' />
         </TouchableOpacity>
@@ -75,7 +75,7 @@ const Myproperties = () => {
             keyExtractor={(item) => item.id.toString()}
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
-              <TouchableOpacity className="flex-row my-2 p-3 rounded-lg border border-gray-100" onPress={() => handleCardPress(item.id)}>
+              <TouchableOpacity className="flex-row my-2 p-3 rounded-lg border border-gray-100 bg-blue-50 shadow" onPress={() => handleCardPress(item.id)}>
                 {/* Property Image */}
                 <View className="w-24 h-24 overflow-hidden rounded-lg border border-gray-300">
                   <Image source={item.thumbnail ? { uri: item.thumbnail } : images.newYork} className="w-full h-full object-cover" />
@@ -84,8 +84,8 @@ const Myproperties = () => {
                 {/* Property Details */}
                 <View className="ml-4 flex-1">
                   <View className="flex-row justify-between mt-2">
-                    <Text className="text-md font-medium text-gray-900">{item.property_name}</Text>
-                    <Text className={`inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-medium ring-1 ring-inset ${item.status === 'published' ? ' bg-green-50  text-green-700  ring-green-600/20 ' : 'bg-red-50  text-red-700 ring-red-600/20'}`}>{item.status}</Text>
+                    <Text className="text-md font-rubik text-gray-900">{item.property_name}</Text>
+                    <Text className={`inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-rubik border  ${item.status === 'published' ? ' bg-green-50  text-green-700  border-green-500 ' : 'bg-red-50  text-red-700 border-red-600/20'}`}>{item.status}</Text>
                   </View>
                   <Text className="text-sm font-semibold text-gray-700">{item.address}</Text>
                   <Text className="text-sm text-gray-500 mt-1">{item.city}</Text>
@@ -93,7 +93,7 @@ const Myproperties = () => {
                     <Text className="text-sm font-semibold text-gray-700">{item.category}</Text>
                     <Text className="text-sm font-semibold text-gray-700">₹{item.price}</Text>
                     <TouchableOpacity onPress={() => handleEditPress(item.id)}>
-                      <Text className="inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-medium ring-1 ring-inset bg-gray-50  text-gray-600 ring-gray-500/10">Edit</Text>
+                      <Text className="inline-flex items-center rounded-md capitalize px-2 py-1 text-xs font-rubik border border-red-600 bg-gray-50 text-red-600">Edit</Text>
                     </TouchableOpacity>
                   </View>
                 </View>

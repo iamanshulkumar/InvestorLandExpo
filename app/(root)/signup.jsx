@@ -83,12 +83,12 @@ const Signup = () => {
         <View className="flex-row justify-around mt-3">
           <TouchableOpacity onPress={() => setIsUser(true)}>
             <View className={`px-10 py-2 rounded-2xl ${isUser ? 'bg-yellow-800' : 'bg-white border'}`}>
-              <Text className={`${isUser ? 'text-white' : 'text-black'} font-bold`} >User</Text>
+              <Text className={`${isUser ? 'text-white' : 'text-black'} font-rubik-bold`} >User</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setIsUser(false)}>
             <View className={`px-10 py-2 rounded-2xl ${!isUser ? 'bg-yellow-800' : 'bg-white border'}`}>
-              <Text className={`${!isUser ? 'text-white' : 'text-black'} font-bold`}>Agent</Text>
+              <Text className={`${!isUser ? 'text-white' : 'text-black'} font-rubik-bold`}>Agent</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -126,7 +126,7 @@ const Signup = () => {
             onPress={handleRegister}
             className="bg-yellow-700 rounded-2xl py-4 mt-5 items-center"
           >
-            <Text className="text-lg font-medium text-white">
+            <Text className="text-lg font-rubik text-white">
               {isUser ? 'Register Now' : 'Sign Up as Agent'}
             </Text>
           </TouchableOpacity>
