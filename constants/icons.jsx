@@ -32,10 +32,13 @@ import wifi from "@/assets/icons/wifi.png";
 import location from "@/assets/icons/location.png";
 import edit from "@/assets/icons/edit.png";
 import addproperty from "@/assets/icons/addproperty.png";
+import videofile from "@/assets/icons/facebook.png";
+import addicon from "@/assets/icons/plus.png";
 
 export default {
   google,
   home,
+  addicon,
   search,
   person,
   bell,
@@ -68,4 +71,5 @@ export default {
   location,
   edit,
   addproperty,
+  videofile,
 };

@@ -9,7 +9,6 @@ import { Link, router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as VideoThumbnails from 'expo-video-thumbnails';
 import MapView, { Marker } from "react-native-maps";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import Constants from "expo-constants";
@@ -17,28 +16,23 @@ import 'react-native-get-random-values';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const Addproperty = () => {
+
     const GOOGLE_MAPS_API_KEY = Constants.expoConfig.extra.GOOGLE_MAPS_API_KEY;
     const [step1Data, setStep1Data] = useState({ property_name: '', description: '', nearbylocation: '', });
-    const [step2Data, setStep2Data] = useState({ approxrentalincome: '', historydate: [], price: '', price: '' });
-    const [step3Data, setStep3Data] = useState({ sqfoot: '', bathroom: '', floor: '', city: '', officeaddress: '', });
+    const [step2Data, setStep2Data] = useState({ approxrentalincome: '', historydate: [], price: '' });
+    const [step3Data, setStep3Data] = useState({ sqfoot: '', bathroom: '', floor: '', city: '', officeaddress: '',  bedroom: ''});
     const [isValid, setIsValid] = useState(false);
 
     const [propertyDocuments, setPropertyDocuments] = useState([]);
-    const [propertyDocNames, setPropertyDocNames] = useState([]);
-
     const [masterPlanDoc, setMasterPlanDoc] = useState([]);
-    const [masterPlanDocNames, setMasterPlanDocNames] = useState([]);
 
     const [errors, setErrors] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState(null);
-    const [selectedStatus, setSelectedStatus] = useState(null);
+    const [selectedStatus, setSelectedStatus] = useState("Unpublished");
     const [mainImage, setMainImage] = useState(null);
 
     const [videos, setVideos] = useState([]);
-    const [videoNames, setVideoNames] = useState([]);
-
     const [galleryImages, setGalleryImages] = useState([]);
-    const [galleryImageNames, setGalleryImageNames] = useState([]);
 
     const [loading, setLoading] = useState(false);
     const [amenity, setAmenity] = useState('');
@@ -55,7 +49,33 @@ const Addproperty = () => {
     });
     const [show, setShow] = useState(false);
     const [selectedDate, setSelectedDate] = useState('');
-    const [price, setPrice] = useState('');
+    const [historyPrice, setHistoryPrice] = useState('');
+    const buttonPreviousTextStyle = {
+        paddingInline: 20,
+        paddingBlock: 5,
+        borderRadius: 10,
+        backgroundColor: '#ff938f',
+        color: 'black',
+    };
+    const buttonNextTextStyle = {
+        paddingInline: 20,
+        paddingBlock: 5,
+        borderRadius: 10,
+        backgroundColor: 'lightgreen',
+        color: 'black',
+    };
+    const categories = [
+        { label: 'Apartment', value: 'Apartment' },
+        { label: 'Villa', value: 'Villa' },
+        { label: 'Penthouse', value: 'Penthouse' },
+        { label: 'Residences', value: 'Residences' },
+        { label: 'Luxury House', value: 'Luxury House' },
+        { label: 'Bunglow', value: 'Bunglow' },
+    ];
+    const status = [
+        { label: 'Unpublished', value: 'Unpublished' },
+        { label: 'Published', value: 'Published' },
+    ];
 
     const validateStep = (step) => {
         if (step === 1) {
@@ -106,8 +126,6 @@ const Addproperty = () => {
         }
     };
 
-    const extractFileName = (uri) => uri.split('/').pop();
-
     const pickGalleryImages = async () => {
         if (!(await requestPermissions())) return;
 
@@ -117,12 +135,9 @@ const Addproperty = () => {
             quality: 1,
         });
 
-        if (!result.canceled) {
-            const selectedURIs = result.assets.map(asset => asset.uri); // Full paths for UI display
-            const selectedNames = result.assets.map(asset => extractFileName(asset.uri)); // Extract only filenames
-
-            setGalleryImages(prevImages => [...new Set([...prevImages, ...selectedURIs])]); // Keep URIs for UI
-            setGalleryImageNames(prevNames => [...new Set([...prevNames, ...selectedNames])]); // Store filenames for API
+        if (!result.cancelled) {
+            const selectedURIs = result.assets.map(asset => asset.uri);
+            setGalleryImages(prevImages => [...new Set([...prevImages, ...selectedURIs])]);
         }
     };
 
@@ -137,8 +152,8 @@ const Addproperty = () => {
 
     // Add Price History Entry
     const addPriceHistory = () => {
-        if (selectedDate && price) {
-            const newHistoryEntry = { dateValue: selectedDate, priceValue: price };
+        if (selectedDate && historyPrice) {
+            const newHistoryEntry = { dateValue: selectedDate, priceValue: historyPrice };
 
             setStep2Data((prevData) => ({
                 ...prevData,
@@ -146,7 +161,7 @@ const Addproperty = () => {
             }));
 
             setSelectedDate('');
-            setPrice('');
+            setHistoryPrice('');
         }
     };
 
@@ -164,27 +179,24 @@ const Addproperty = () => {
             allowsMultipleSelection: true,
         });
 
-        if (!result.canceled) {
-            const selectedVideos = result.assets;
+        if (!result.cancelled) {
+            // console.log("Selected Videos:", result.assets);
 
-            const videoDataPromises = selectedVideos.map(async (video) => {
-                try {
-                    return { id: video.uri, uri: video.uri, thumbnailImages: "https://via.placeholder.com/150?text=No+Thumbnail" };
-                } catch (error) {
-                    console.error("Thumbnail generation error:", error);
-                    return { id: video.uri, uri: video.uri, thumbnailImages: "https://via.placeholder.com/150?text=No+Thumbnail" }; // Default thumbnail
-                }
-            });
+            const defaultThumbnail =
+                typeof icons.videofile === "number" // If it's a local import
+                    ? Image.resolveAssetSource(icons.videofile).uri
+                    : icons.videofile; // If it's a URL or valid string
 
-            const videoDataArray = await Promise.all(videoDataPromises);
-            const videoFileNames = selectedVideos.map(video => extractFileName(video.uri));
+            const selectedVideos = result.assets.map(video => ({
+                id: video.uri,
+                uri: video.uri,
+                thumbnailImages: defaultThumbnail, // ✅ Make sure this is correct
+            }));
 
-            setVideos(prevVideos => [...prevVideos, ...videoDataArray]); // Store full URIs for UI
-            setVideoNames(prevNames => [...prevNames, ...videoFileNames]); // Store filenames for API
+            // console.log("Processed Videos:", selectedVideos);
+            setVideos(prevVideos => [...new Set([...prevVideos, ...selectedVideos])]);
         }
     };
-
-
 
     const pickDocument = async () => {
         let result = await DocumentPicker.getDocumentAsync({
@@ -192,7 +204,7 @@ const Addproperty = () => {
             multiple: true, // Enable multiple selection
         });
 
-        if (result.canceled) return;
+        if (result.cancelled) return;
 
         const selectedDocuments = Array.isArray(result.assets) ? result.assets : [result];
 
@@ -202,18 +214,13 @@ const Addproperty = () => {
             thumbnail: 'https://cdn-icons-png.flaticon.com/512/337/337946.png', // PDF icon
         }));
 
-        const newDocNames = selectedDocuments.map(doc => extractFileName(doc.uri));
-
-        setPropertyDocuments(prevDocs => [...prevDocs, ...newDocuments]); // Keep full URIs for UI
-        setPropertyDocNames(prevNames => [...prevNames, ...newDocNames]);
+        setPropertyDocuments(prevDocs => [...prevDocs, ...newDocuments]);
     };
 
     // Function to remove a document
     const removeDocument = (index) => {
         setPropertyDocuments(prevDocs => prevDocs.filter((_, i) => i !== index));
-        setPropertyDocNames(prevNames => prevNames.filter((_, i) => i !== index));
     };
-
 
     const pickMasterPlan = async () => {
         let result = await DocumentPicker.getDocumentAsync({
@@ -221,7 +228,7 @@ const Addproperty = () => {
             multiple: true,
         });
 
-        if (result.canceled) return;
+        if (result.cancelled) return;
 
         const selectedDocuments = Array.isArray(result.assets) ? result.assets : [result];
 
@@ -231,16 +238,12 @@ const Addproperty = () => {
             thumbnail: doc.mimeType.startsWith('image') ? doc.uri : 'https://cdn-icons-png.flaticon.com/512/337/337946.png', // Image preview or PDF icon
         }));
 
-        const newDocNames = selectedDocuments.map(doc => extractFileName(doc.uri));
-
-        setMasterPlanDoc(prevDocs => [...prevDocs, ...newDocuments]); // Keep full URIs for UI
-        setMasterPlanDocNames(prevNames => [...prevNames, ...newDocNames]);
+        setMasterPlanDoc(prevDocs => [...prevDocs, ...newDocuments]);
     };
 
     // Function to remove a document
     const removeMasterPlan = (index) => {
         setMasterPlanDoc(prevDocs => prevDocs.filter((_, i) => i !== index));
-        setMasterPlanDocNames(prevNames => prevNames.filter((_, i) => i !== index));
     };
 
     // Function to handle location selection from Google Places
@@ -256,9 +259,10 @@ const Addproperty = () => {
 
             // Store selected coordinates
             setCoordinates({
-                latitude: lat.toString(),
-                longitude: lng.toString(),
+                latitude: lat?.toString() ?? "",
+                longitude: lng?.toString() ?? "",
             });
+
         }
     };
 
@@ -279,41 +283,13 @@ const Addproperty = () => {
         });
     };
 
-    const buttonPreviousTextStyle = {
-        paddingInline: 20,
-        paddingBlock: 5,
-        borderRadius: 10,
-        backgroundColor: '#ff938f',
-        color: 'black',
-    };
-    const buttonNextTextStyle = {
-        paddingInline: 20,
-        paddingBlock: 5,
-        borderRadius: 10,
-        backgroundColor: 'lightgreen',
-        color: 'black',
-    };
-
-    const categories = [
-        { label: 'Apartment', value: 'Apartment' },
-        { label: 'Villa', value: 'Villa' },
-        { label: 'Penthouse', value: 'Penthouse' },
-        { label: 'Residences', value: 'Residences' },
-        { label: 'Luxury House', value: 'Luxury House' },
-        { label: 'Bunglow', value: 'Bunglow' },
-    ];
-
-    const status = [
-        { label: 'Unpublished', value: 'Unpublished' },
-        { label: 'Published', value: 'Published' },
-    ];
 
     const getUserData = async () => {
         try {
             const userData = await AsyncStorage.getItem('userData');
             const userToken = await AsyncStorage.getItem('userToken');
 
-            console.log("Logged-in userToken:", userToken);
+            // console.log("Logged-in userToken:", userToken);
 
             return {
                 userData: userData ? JSON.parse(userData) : null,
@@ -330,79 +306,155 @@ const Addproperty = () => {
         setLoading(true);
         try {
             const { userData, userToken } = await getUserData();
-            if (!userData) return;
-            console.log("Logged-in User:", userData);
-            console.log("Logged-in userToken:", userToken);
-            
-            const { id, user_type } = userData;
-            if (!userToken) {
+            if (!userData || !userToken) {
                 throw new Error("User is not authenticated. Token missing.");
             }
-    
-            const formattedVideos = videoNames.join(",");
-            const formattedGalleryImages = galleryImageNames.join(",");
-            const formattedPropertyDocs = propertyDocNames.join(",");
-            const formattedMasterPlanDocs = masterPlanDocNames.join(",");
-    
+
+            const { id, user_type } = userData;
+
             const formData = new FormData();
-    
-            // Add text fields
-            Object.keys(step1Data).forEach((key) => formData.append(key, step1Data[key]));
-            Object.keys(step3Data).forEach((key) => formData.append(key, step3Data[key]));
+            // ✅ Append Step 1 Data
+            Object.entries(step1Data).forEach(([key, value]) => {
+                formData.append(key, value);
+            });
+
+            // ✅ Append Step 2 Data
+            Object.entries(step2Data).forEach(([key, value]) => {
+                formData.append(key, value);
+            });
+
+            // ✅ Append Step 3 Data
+            Object.entries(step3Data).forEach(([key, value]) => {
+                formData.append(key, value);
+            });
+
+            // ✅ Append additional fields
+            formData.append("bedroom", step3Data?.bedroom ?? "");
             formData.append("category", selectedCategory ?? "");
             formData.append("status", selectedStatus ?? "");
             formData.append("roleid", id ?? "");
             formData.append("usertype", user_type ?? "");
             formData.append("amenities", JSON.stringify(amenities));
-    
-            // ✅ Ensure `step2Data` is not null before accessing `historydate`
             formData.append("historydate", JSON.stringify(step2Data?.historydate ?? []));
-    
-            // Append coordinates
-            const locationData = JSON.stringify({
+
+            // ✅ Append Location Data
+            formData.append("location", JSON.stringify({
                 Latitude: coordinates.latitude,
                 Longitude: coordinates.longitude,
-            });
-            formData.append("location", locationData);
-    
-            // Add main image
+            }));
+
+            let thumbnailFileName = '';
             if (mainImage) {
-                const fileType = mainImage.split('.').pop();
+                const fileType = mainImage?.includes('.') ? mainImage.split('.').pop() : "jpg";  // Ensure there's an extension
+                thumbnailFileName = `mainImage-thumbnail.${fileType}`;
                 formData.append("thumbnailImages", {
                     uri: mainImage,
-                    type: `image/${fileType}`,
-                    name: `mainImage-thumbnail.${fileType}`,
+                    name: thumbnailFileName,
+                    type: `image/${fileType}`
                 });
             }
-            formData.append("bedroom", step3Data?.bedroom ?? "");
-
-            // Add videos
-            formData.append("propertyvideos", formattedVideos || "");
-    
-            // Add gallery images
-            formData.append("galleryImages", formattedGalleryImages || "");
-    
-            // Store only filenames in form data
-            formData.append("documents", formattedPropertyDocs || "");
-            formData.append("masterplandocument", formattedMasterPlanDocs || "");
-    
-            console.log("Uploading FormData:", formData);
-            for (let [key, value] of formData.entries()) {
-                console.log(key, value);
-            }
             
-            // Send data
+            
+
+            // ✅ Append Videos as a Comma-Separated String
+            videos.forEach((video, index) => {
+                if (video?.uri) {  // Check if video.uri exists
+                    const fileType = video.uri.includes('.') ? video.uri.split('.').pop() : "mp4";
+                    formData.append(`propertyvideos[${index}]`, {
+                        uri: video.uri,
+                        type: video.type || `video/${fileType}`,
+                        name: `video-${index}.${fileType}`,
+                    });
+                }
+            });
+            
+            
+            
+
+            // ✅ Append Documents as a Comma-Separated String
+            propertyDocuments.forEach((doc, index) => {
+                if (doc?.uri) {  // Check if doc.uri exists
+                    const fileType = doc.uri.includes('.') ? doc.uri.split('.').pop() : "pdf";
+                    formData.append(`documents[${index}]`, {
+                        uri: doc.uri,
+                        type: doc.type || `application/${fileType}`,
+                        name: `document-${index}.${fileType}`,
+                    });
+                }
+            });
+            
+            masterPlanDoc.forEach((doc, index) => {
+                if (doc?.uri) {  // Ensure the document has a valid URI
+                    const fileType = doc.uri.split('.').pop()?.toLowerCase() || "pdf";
+                    const validFileTypes = ["pdf", "jpeg", "jpg"];
+            
+                    if (!validFileTypes.includes(fileType)) {
+                        console.warn(`Invalid file type detected: ${fileType}`);
+                        return;
+                    }
+            
+                    formData.append("masterplandocument", {
+                        uri: doc.uri,
+                        type: fileType === "pdf" ? "application/pdf" : `image/${fileType}`,
+                        name: `masterplan-${index}.${fileType}`,
+                    });
+                }
+            });
+            
+            // console.log("Uploading Master Plan Document:", masterPlanDoc);
+
+
+            // ✅ Append Gallery Images 
+            if (galleryImages.length > 0) {
+                galleryImages.forEach((image, index) => {
+                    if (image?.uri) {  
+                        formData.append(`galleryImages[${index}]`, {
+                            uri: image.uri,
+                            type: image.type || "image/jpeg",
+                            name: `gallery-image-${index}.${image.uri.split('.').pop() || "jpg"}`,
+                        });
+                    }
+                });
+            } else {
+                console.warn("🚨 Warning: No gallery images selected!");
+            }
+            console.log("Uploading galleryImages", galleryImages);
+            
+            
+            
+            
+
+            // ✅ Prepare File Data Object & Append
+            const safeFileName = (uri, defaultExt) => {
+                return uri && uri.includes('.') ? uri.split('.').pop() : defaultExt;
+            };
+            
+            const fileData = {
+                galleryImages: galleryImages.map((image, index) => `gallery-image-${index}.${safeFileName(image.uri, "jpg")}`),
+                thumbnailImages: thumbnailFileName ? [thumbnailFileName] : [],
+                documents: propertyDocuments.map((doc, index) => `document-${index}.${safeFileName(doc.uri, "pdf")}`),
+                masterplandocument: masterPlanDoc.map((doc, index) => `masterplan-${index}.${safeFileName(doc.uri, "pdf")}`),
+                propertyvideos: videos.map((video, index) => `video-${index}.${safeFileName(video.uri, "mp4")}`),
+            };
+            formData.append("fileData", JSON.stringify(fileData));
+            
+            
+
+            console.log("Uploading FormData:", formData);
+
+            // Send API request
             const response = await axios.post("https://investorlands.com/api/insertlisting", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                     "Authorization": `Bearer ${userToken}`,
                 },
             });
-            console.log("API Response:", response.data); // ✅ Check what API is returning
-            if (response.status === 200) {
+
+            console.log("API Response:", response.data);
+            if (response.status === 200 && !response.data.error) {
                 Alert.alert("Success", "Property added successfully!", [{ text: "OK" }]);
             } else {
-                Alert.alert("Error", "Failed to add property.");
+                Alert.alert("Error", response.data.message || "Failed to add property.");
             }
         } catch (error) {
             console.error("API Error:", error?.response?.data || error);
@@ -411,40 +463,40 @@ const Addproperty = () => {
             setLoading(false);
         }
     };
-    
+
+
 
     // Reset Form Function
     const resetForm = () => {
-        setStep1Data({ 
-            property_name: '', 
-            description: '', 
-            nearbylocation: '', 
-            approxrentalincome: '', 
-            price: '' 
+        setStep1Data({
+            property_name: '',
+            description: '',
+            nearbylocation: '',
+            approxrentalincome: '',
+            price: ''
         });
-    
-        setStep3Data({ 
-            price: '', 
-            amenities: '', 
-            sqfoot: '', 
-            bathroom: '', 
-            floor: '', 
-            city: '', 
-            officeaddress: '' 
+
+        setStep3Data({
+            amenities: '',
+            sqfoot: '',
+            bathroom: '',
+            floor: '',
+            city: '',
+            officeaddress: ''
         });
-    
+
         // ✅ Instead of `null`, initialize step2Data with an empty object that includes `historydate`
         setStep2Data({ historydate: [] });
-    
+
         setSelectedCategory(null);
-        setSelectedStatus(null);
+        setSelectedStatus("Unpublished");
         setMainImage(null);
         setGalleryImages([]);
         setPropertyDocuments([]);
         setMasterPlanDoc([]);
         setVideos([]);
     };
-    
+
 
 
 
@@ -540,39 +592,51 @@ const Addproperty = () => {
                             <Text style={styles.label}>Approx Rental Income</Text>
                             <TextInput
                                 style={styles.input}
+                                keyboardType="numeric"
                                 placeholder="Enter approx rental income"
-                                value={step1Data.approxrentalincome} // Create a separate state variable
-                                onChangeText={text => setStep1Data({ ...step1Data, approxrentalincome: text })}
+                                value={step2Data.approxrentalincome}
+                                onChangeText={text => {
+                                    const numericText = text.replace(/[^0-9]/g, '');
+                                    setStep2Data(prevState => ({ ...prevState, approxrentalincome: numericText }));
+                                }}
                             />
+
 
                             <Text style={styles.label}>Current Property Price</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Enter approx rental income"
-                                value={step1Data.price} // Create a separate state variable
-                                onChangeText={text => setStep1Data({ ...step1Data, price: text })}
+                                keyboardType="numeric"
+                                placeholder="Enter current price"
+                                value={step2Data.price}
+                                onChangeText={text => {
+                                    const numericText = text.replace(/[^0-9]/g, '');
+                                    setStep2Data(prevState => ({ ...prevState, price: numericText }));
+                                }}
                             />
 
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                                 <View style={{ flex: 1, marginRight: 10 }}>
 
                                     {/* enter property price */}
-                                    <Text style={styles.label}>Property Price</Text>
+                                    <Text style={styles.label}>Historical Price</Text>
 
                                     {/* Enter Price */}
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="Property Price"
-                                        value={price}
-                                        onChangeText={setPrice}
+                                        placeholder="Historical Price"
+                                        value={historyPrice}
                                         keyboardType="numeric"
+                                        onChangeText={(text) => {
+                                            const numericText = text.replace(/[^0-9]/g, '');
+                                            setHistoryPrice(numericText);
+                                        }}
                                     />
                                 </View>
 
                                 <View style={{ flex: 1 }}>
 
                                     {/* Select Date */}
-                                    <Text style={styles.label}>Price History</Text>
+                                    <Text style={styles.label}>Historical Date</Text>
                                     <TouchableOpacity onPress={() => setShow(true)}>
                                         <TextInput
                                             style={styles.input}
@@ -635,18 +699,28 @@ const Addproperty = () => {
                                 <Text style={styles.label}>Features & Amenities</Text>
                                 <Text className='text-sm mt-3'>(Press Enter to add multiple)</Text>
                             </View>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter to Add Amenities"
-                                value={amenity}
-                                onChangeText={setAmenity}
-                                onSubmitEditing={handleAddAmenity} // Adds item on Enter key press
-                            />
+                            <View className='flex flex-row align-center'>
+                                <View className='flex-grow'>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Enter to Add Amenities"
+                                        value={amenity}
+                                        onChangeText={setAmenity}
+                                        onSubmitEditing={handleAddAmenity} // Adds item on Enter key press
+                                    />
+                                </View>
+                                <TouchableOpacity onPress={() => handleAddAmenity()}>
+                                    <Image
+                                        source={icons.addicon}
+                                        style={styles.addBtn}
+                                    />
+                                </TouchableOpacity>
+                            </View>
                             <View style={{ flexGrow: 1, minHeight: 1 }}>
                                 <ScrollView horizontal nestedScrollEnabled={true} contentContainerStyle={{ flexDirection: "row" }}>
                                     {amenities.map((item, index) => (
                                         <View key={index} style={styles.amenityItem}>
-                                            <Text className='font-rubik-bold px-2 capitalize text-nowrap'>{item}</Text>
+                                            <Text className='font-rubik-bold px-2 capitalize text-nowrap text-green-600'>{item}</Text>
                                             <TouchableOpacity onPress={() => setAmenities(amenities.filter(a => a !== item))}>
                                                 <Text style={styles.removeBtn}>❌</Text>
                                             </TouchableOpacity>
@@ -659,13 +733,19 @@ const Addproperty = () => {
                                 {/* enter squre foot area */}
                                 <View style={{ flex: 1, marginRight: 5 }}>
                                     <Text style={styles.label}>Square Foot</Text>
-                                    <TextInput style={styles.input} placeholder="Square Foot" value={step3Data.sqfoot} onChangeText={text => setStep3Data({ ...step3Data, sqfoot: text })} />
+                                    <TextInput style={styles.input} placeholder="Square Foot" keyboardType="numeric" value={step3Data.sqfoot} onChangeText={text => setStep3Data({ ...step3Data, sqfoot: text })} />
                                 </View>
 
                                 {/* enter number of bathrooms */}
                                 <View style={{ flex: 1, marginLeft: 5 }}>
                                     <Text style={styles.label}>Bathroom</Text>
-                                    <TextInput style={styles.input} placeholder="Bathroom" value={step3Data.bathroom} onChangeText={text => setStep3Data({ ...step3Data, bathroom: text })} />
+                                    <TextInput style={styles.input} placeholder="Bathroom" keyboardType="numeric" value={step3Data.bathroom} onChangeText={text => setStep3Data({ ...step3Data, bathroom: text })} />
+                                </View>
+                                {/* enter number of bathrooms */}
+
+                                <View style={{ flex: 1, marginLeft: 5 }}>
+                                    <Text style={styles.label}>Bedroom</Text>
+                                    <TextInput style={styles.input} placeholder="bedrooms" keyboardType="numeric" value={step3Data.bedroom} onChangeText={text => setStep3Data({ ...step3Data, bedroom: text })} />
                                 </View>
                             </View>
 
@@ -673,7 +753,7 @@ const Addproperty = () => {
                                 {/* enter number of floors */}
                                 <View style={{ flex: 1, marginRight: 5 }}>
                                     <Text style={styles.label}>Floor</Text>
-                                    <TextInput style={styles.input} placeholder="Floor" value={step3Data.floor} onChangeText={text => setStep3Data({ ...step3Data, floor: text })} />
+                                    <TextInput style={styles.input} placeholder="Floor" keyboardType="numeric" value={step3Data.floor} onChangeText={text => setStep3Data({ ...step3Data, floor: text })} />
                                 </View>
 
                                 {/* enter property city */}
@@ -699,6 +779,7 @@ const Addproperty = () => {
                                         language: "en",
                                     }}
                                     styles={styles.mapTextInput}
+                                    keyboardShouldPersistTaps="handled"
                                 />
                             </View>
 
@@ -722,7 +803,13 @@ const Addproperty = () => {
                         <View style={styles.stepContent}>
                             <Text style={styles.label}>Select Status</Text>
                             <View style={styles.pickerContainer}>
-                                <RNPickerSelect onValueChange={(value) => setSelectedStatus(value)} items={status} style={pickerSelectStyles} placeholder={{ label: 'Choose an option...', value: null }} />
+                                <RNPickerSelect
+                                    onValueChange={(value) => setSelectedStatus(value)}
+                                    items={status}
+                                    value={selectedStatus} // ✅ Ensures the default value is selected
+                                    style={pickerSelectStyles}
+                                    placeholder={{ label: 'Choose an option...', value: null }}
+                                />
                             </View>
                         </View>
 
@@ -845,7 +932,7 @@ const Addproperty = () => {
                     </ProgressStep>
                 </ProgressSteps>
             </View>
-            
+
         </SafeAreaView>
     )
 }
@@ -902,21 +989,30 @@ const styles = StyleSheet.create({
         padding: 5,
         borderRadius: 50,
         marginRight: 5,
-        borderColor: 'gray',
+        borderColor: 'green',
         backgroundColor: '#edf5ff',
-
+        borderWidth: 1,
     },
     removeBtn: {
         color: 'red',
         fontWeight: 'bold',
         fontSize: 12,
         marginEnd: 5,
+        marginTop: 3,
+
+    },
+    addBtn: {
+        width: 40,
+        height: 40,
+        marginStart: 10,
+        marginTop: 15,
     },
     mapTextInput: {
         width: '100%',
         height: 50,
         borderColor: "#edf5ff",
         borderWidth: 1,
+        backgroundColor: "#edf5ff",
         borderRadius: 10,
         paddingHorizontal: 10,
     },
