@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, TextInput, FlatList, Alert, Platform, ScrollView } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, TextInput, FlatList, Alert, Platform, ScrollView, Button, ActivityIndicator } from 'react-native';
 import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import icons from '@/constants/icons';
@@ -20,7 +20,7 @@ const Addproperty = () => {
     const GOOGLE_MAPS_API_KEY = Constants.expoConfig.extra.GOOGLE_MAPS_API_KEY;
     const [step1Data, setStep1Data] = useState({ property_name: '', description: '', nearbylocation: '', });
     const [step2Data, setStep2Data] = useState({ approxrentalincome: '', historydate: [], price: '' });
-    const [step3Data, setStep3Data] = useState({ sqfoot: '', bathroom: '', floor: '', city: '', officeaddress: '',  bedroom: ''});
+    const [step3Data, setStep3Data] = useState({ sqfoot: '', bathroom: '', floor: '', city: '', officeaddress: '', bedroom: '' });
     const [isValid, setIsValid] = useState(false);
 
     const [propertyDocuments, setPropertyDocuments] = useState([]);
@@ -99,7 +99,7 @@ const Addproperty = () => {
     const requestPermissions = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert("Permission Denied", "Please allow access to media library.");
+            alert('Sorry, we need camera roll permissions to make this work!');
             return false;
         }
         return true;
@@ -129,48 +129,32 @@ const Addproperty = () => {
     const pickGalleryImages = async () => {
         if (!(await requestPermissions())) return;
 
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsMultipleSelection: true,
-            quality: 1,
-        });
+        try {
+            let result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsMultipleSelection: true,
+                quality: 0.5,
+            });
 
-        if (!result.cancelled) {
-            const selectedURIs = result.assets.map(asset => asset.uri);
-            setGalleryImages(prevImages => [...new Set([...prevImages, ...selectedURIs])]);
+            // console.log("🚀 Image Picker Result:", result); // Debugging log
+
+            if (!result.canceled && result.assets?.length) {
+                // Extract only the URI (ensuring no extra object nesting)
+                const selectedImages = result.assets.map(image => image.uri);
+
+                // console.log("✅ Processed Image URIs:", selectedImages);
+
+                // Ensure state only stores an array of URIs (not objects)
+                setGalleryImages(prevImages => [
+                    ...prevImages,
+                    ...selectedImages,
+                ]);
+            } else {
+                console.warn("⚠️ No images selected.");
+            }
+        } catch (error) {
+            console.error("❌ Error picking images:", error);
         }
-    };
-
-    // Handle Date Change
-    const handleDateChange = (event, date) => {
-        setShow(false);
-        if (date) {
-            const formattedDate = date.toLocaleDateString("en-GB"); // Convert to YYYY-MM-DD
-            setSelectedDate(formattedDate);
-        }
-    };
-
-    // Add Price History Entry
-    const addPriceHistory = () => {
-        if (selectedDate && historyPrice) {
-            const newHistoryEntry = { dateValue: selectedDate, priceValue: historyPrice };
-
-            setStep2Data((prevData) => ({
-                ...prevData,
-                historydate: [...prevData.historydate, newHistoryEntry],
-            }));
-
-            setSelectedDate('');
-            setHistoryPrice('');
-        }
-    };
-
-    // Function to remove a specific price history entry
-    const removePriceHistory = (index) => {
-        setStep2Data((prevData) => ({
-            ...prevData,
-            historydate: prevData.historydate.filter((_, i) => i !== index),
-        }));
     };
 
     const pickVideo = async () => {
@@ -179,7 +163,7 @@ const Addproperty = () => {
             allowsMultipleSelection: true,
         });
 
-        if (!result.cancelled) {
+        if (!result.canceled) {
             // console.log("Selected Videos:", result.assets);
 
             const defaultThumbnail =
@@ -197,6 +181,45 @@ const Addproperty = () => {
             setVideos(prevVideos => [...new Set([...prevVideos, ...selectedVideos])]);
         }
     };
+    // Handle Date Change
+    const handleDateChange = (event, date) => {
+        setShow(false);
+        if (date) {
+            const formattedDate = date.toLocaleDateString("en-GB"); // Convert to YYYY-MM-DD
+            setSelectedDate(formattedDate);
+        }
+    };
+
+    // Add Price History Entry
+    const formatDate = (dateString) => {
+        const [day, month, year] = dateString.split("/");  // Split DD/MM/YYYY
+        return `${year}-${month}-${day}`;  // Convert to YYYY-MM-DD
+    };
+    
+    const addPriceHistory = () => {
+        if (selectedDate && historyPrice) {
+            const newHistoryEntry = { 
+                dateValue: formatDate(selectedDate),  // Convert date format
+                priceValue: historyPrice 
+            };
+    
+            setStep2Data((prevData) => ({
+                ...prevData,
+                historydate: [...prevData.historydate, newHistoryEntry],
+            }));
+    
+            setSelectedDate('');
+            setHistoryPrice('');
+        }
+    };
+    
+    // Function to remove a specific price history entry
+    const removePriceHistory = (index) => {
+        setStep2Data((prevData) => ({
+            ...prevData,
+            historydate: prevData.historydate.filter((_, i) => i !== index),
+        }));
+    };
 
     const pickDocument = async () => {
         let result = await DocumentPicker.getDocumentAsync({
@@ -204,7 +227,7 @@ const Addproperty = () => {
             multiple: true, // Enable multiple selection
         });
 
-        if (result.cancelled) return;
+        if (result.canceled) return;
 
         const selectedDocuments = Array.isArray(result.assets) ? result.assets : [result];
 
@@ -228,7 +251,7 @@ const Addproperty = () => {
             multiple: true,
         });
 
-        if (result.cancelled) return;
+        if (result.canceled) return;
 
         const selectedDocuments = Array.isArray(result.assets) ? result.assets : [result];
 
@@ -283,7 +306,6 @@ const Addproperty = () => {
         });
     };
 
-
     const getUserData = async () => {
         try {
             const userData = await AsyncStorage.getItem('userData');
@@ -314,19 +336,11 @@ const Addproperty = () => {
 
             const formData = new FormData();
             // ✅ Append Step 1 Data
-            Object.entries(step1Data).forEach(([key, value]) => {
-                formData.append(key, value);
-            });
-
+            Object.entries(step1Data).forEach(([key, value]) => { formData.append(key, value); });
             // ✅ Append Step 2 Data
-            Object.entries(step2Data).forEach(([key, value]) => {
-                formData.append(key, value);
-            });
-
+            Object.entries(step2Data).forEach(([key, value]) => { formData.append(key, value); });
             // ✅ Append Step 3 Data
-            Object.entries(step3Data).forEach(([key, value]) => {
-                formData.append(key, value);
-            });
+            Object.entries(step3Data).forEach(([key, value]) => { formData.append(key, value); });
 
             // ✅ Append additional fields
             formData.append("bedroom", step3Data?.bedroom ?? "");
@@ -335,7 +349,7 @@ const Addproperty = () => {
             formData.append("roleid", id ?? "");
             formData.append("usertype", user_type ?? "");
             formData.append("amenities", JSON.stringify(amenities));
-            formData.append("historydate", JSON.stringify(step2Data?.historydate ?? []));
+            formData.append("historydate", step2Data?.historydate ? JSON.stringify(step2Data.historydate) : "[]");
 
             // ✅ Append Location Data
             formData.append("location", JSON.stringify({
@@ -353,8 +367,23 @@ const Addproperty = () => {
                     type: `image/${fileType}`
                 });
             }
-            
-            
+
+            // ✅ Append Gallery Images Correctly
+            galleryImages.forEach((imageUri, index) => {
+                if (imageUri) { // Directly check string
+                    const fileType = imageUri.includes('.') ? imageUri.split('.').pop() : "jpeg";
+
+                    formData.append(`galleryImages[${index}]`, {
+                        uri: imageUri, // ✅ Corrected
+                        type: `image/${fileType}`,
+                        name: `gallery-image-${index}.${fileType}`,
+                    });
+                } else {
+                    console.warn("Skipping image due to missing URI.");
+                }
+            });
+
+            // console.log("Uploading galleryImages", galleryImages);
 
             // ✅ Append Videos as a Comma-Separated String
             videos.forEach((video, index) => {
@@ -367,9 +396,7 @@ const Addproperty = () => {
                     });
                 }
             });
-            
-            
-            
+            // console.log("Uploading videos", videos);
 
             // ✅ Append Documents as a Comma-Separated String
             propertyDocuments.forEach((doc, index) => {
@@ -382,17 +409,17 @@ const Addproperty = () => {
                     });
                 }
             });
-            
+
             masterPlanDoc.forEach((doc, index) => {
                 if (doc?.uri) {  // Ensure the document has a valid URI
                     const fileType = doc.uri.split('.').pop()?.toLowerCase() || "pdf";
                     const validFileTypes = ["pdf", "jpeg", "jpg"];
-            
+
                     if (!validFileTypes.includes(fileType)) {
                         console.warn(`Invalid file type detected: ${fileType}`);
                         return;
                     }
-            
+
                     formData.append("masterplandocument", {
                         uri: doc.uri,
                         type: fileType === "pdf" ? "application/pdf" : `image/${fileType}`,
@@ -400,47 +427,22 @@ const Addproperty = () => {
                     });
                 }
             });
-            
             // console.log("Uploading Master Plan Document:", masterPlanDoc);
-
-
-            // ✅ Append Gallery Images 
-            if (galleryImages.length > 0) {
-                galleryImages.forEach((image, index) => {
-                    if (image?.uri) {  
-                        formData.append(`galleryImages[${index}]`, {
-                            uri: image.uri,
-                            type: image.type || "image/jpeg",
-                            name: `gallery-image-${index}.${image.uri.split('.').pop() || "jpg"}`,
-                        });
-                    }
-                });
-            } else {
-                console.warn("🚨 Warning: No gallery images selected!");
-            }
-            console.log("Uploading galleryImages", galleryImages);
-            
-            
-            
-            
 
             // ✅ Prepare File Data Object & Append
             const safeFileName = (uri, defaultExt) => {
                 return uri && uri.includes('.') ? uri.split('.').pop() : defaultExt;
             };
-            
+
             const fileData = {
                 galleryImages: galleryImages.map((image, index) => `gallery-image-${index}.${safeFileName(image.uri, "jpg")}`),
+                propertyvideos: videos.map((video, index) => `video-${index}.${safeFileName(video.uri, "mp4")}`),
                 thumbnailImages: thumbnailFileName ? [thumbnailFileName] : [],
                 documents: propertyDocuments.map((doc, index) => `document-${index}.${safeFileName(doc.uri, "pdf")}`),
                 masterplandocument: masterPlanDoc.map((doc, index) => `masterplan-${index}.${safeFileName(doc.uri, "pdf")}`),
-                propertyvideos: videos.map((video, index) => `video-${index}.${safeFileName(video.uri, "mp4")}`),
             };
             formData.append("fileData", JSON.stringify(fileData));
-            
-            
-
-            console.log("Uploading FormData:", formData);
+            // console.log("Uploading FormData:", formData);
 
             // Send API request
             const response = await axios.post("https://investorlands.com/api/insertlisting", formData, {
@@ -450,7 +452,7 @@ const Addproperty = () => {
                 },
             });
 
-            console.log("API Response:", response.data);
+            // console.log("API Response:", response.data);
             if (response.status === 200 && !response.data.error) {
                 Alert.alert("Success", "Property added successfully!", [{ text: "OK" }]);
             } else {
@@ -463,8 +465,6 @@ const Addproperty = () => {
             setLoading(false);
         }
     };
-
-
 
     // Reset Form Function
     const resetForm = () => {
@@ -496,9 +496,6 @@ const Addproperty = () => {
         setMasterPlanDoc([]);
         setVideos([]);
     };
-
-
-
 
     return (
         <SafeAreaView style={{ backgroundColor: 'white', height: '100%', paddingHorizontal: 20 }}>
@@ -932,7 +929,11 @@ const Addproperty = () => {
                     </ProgressStep>
                 </ProgressSteps>
             </View>
-
+            {loading && (
+                <View className='absolute bottom-28 z-40 right-16'>
+                    <ActivityIndicator />
+                </View>
+            )}
         </SafeAreaView>
     )
 }

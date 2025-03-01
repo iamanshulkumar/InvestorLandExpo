@@ -38,7 +38,7 @@ import addicon from "@/assets/icons/plus.png";
 export default {
   google,
   home,
-  addicon,
+addicon,
   search,
   person,
   bell,
