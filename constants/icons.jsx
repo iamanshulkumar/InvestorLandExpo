@@ -34,11 +34,13 @@ import edit from "@/assets/icons/edit.png";
 import addproperty from "@/assets/icons/addproperty.png";
 import videofile from "@/assets/icons/facebook.png";
 import addicon from "@/assets/icons/plus.png";
+import checkmark from "@/assets/icons/check-mark.png";
 
 export default {
   google,
   home,
-addicon,
+  checkmark,
+  addicon,
   search,
   person,
   bell,

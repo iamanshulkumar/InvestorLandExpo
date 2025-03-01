@@ -1,4 +1,4 @@
-import { FlatList, Image, ScrollView, Text, TouchableOpacity, View, Dimensions, Platform, ActivityIndicator } from "react-native";
+import { FlatList, Image, ScrollView, Text, TouchableOpacity, View, Dimensions, Platform, ActivityIndicator, Share } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import icons from "@/constants/icons";
 import images from "@/constants/images";
@@ -7,10 +7,16 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Videobox from "../../../components/Videobox";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import MapView, { Marker } from "react-native-maps";
+import 'react-native-get-random-values';
+import * as Location from "expo-location";
+import { useNavigation } from "@react-navigation/native";
+import MasterPlanList from "@/components/MasterPlanList";
+import PriceHistoryChart from "@/components/PriceHistoryChart";
 
 const PropertyDetails = () => {
     const [propertyId, setPropertyId] = useState(useLocalSearchParams().id);
-
+    const [address, setAddress] = useState("");
     const windowHeight = Dimensions.get("window").height;
     const [propertyData, setPropertyData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -18,40 +24,77 @@ const PropertyDetails = () => {
     const [propertyGallery, setPropertyGallery] = useState(); // Default avatar
     const [videoUrls, setVideoUrls] = useState([]);
     const [loggedinUserId, setLoggedinUserId] = useState([]);
-
+    const [amenities, setAmenities] = useState([]);
+    const [priceHistory, setPriceHistory] = useState([]);
+    const [masterPlanDocs, setMasterPlanDocs] = useState([]);
+    const [priceHistoryData, setPriceHistoryData] = useState([]);
+    const [isPdf, setIsPdf] = useState(false);
     const property = {
         facilities: facilities,
         gallery: gallery,
     };
+    const [coordinates, setCoordinates] = useState({
+        latitude: "",
+        longitude: "",
+    });
+    const [region, setRegion] = useState({
+        latitude: 20.5937,
+        longitude: 78.9629,
+        latitudeDelta: 0.015,
+        longitudeDelta: 0.0121,
+    });
+    const navigation = useNavigation();
 
+    const openPdf = (pdfUrl) => {
+        Linking.openURL(pdfUrl);
+    };
+
+    const getAddressFromCoordinates = async (latitude, longitude) => {
+        try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") {
+                Alert.alert("Permission Denied", "Allow location access in settings.");
+                return;
+            }
+            // console.log("location:", latitude, longitude);
+
+            let location = await Location.reverseGeocodeAsync({ latitude, longitude });
+            // console.log("location:", location);
+
+            if (location.length > 0) {
+                const { name, street, city, region, country, postalCode } = location[0];
+                setAddress(`${name || street}, ${city}, ${region}, ${country} - ${postalCode}`);
+            }
+        } catch (error) {
+            console.error("Error fetching address:", error);
+        }
+    };
 
     const handleEnquiry = async () => {
         try {
             setLoading(true); // Show loading indicator
-    
             // Get user data from AsyncStorage
             const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
             const userId = parsedUserData?.id; // Extract user ID safely
-    
+            // console.log("Stored userData:", parsedUserData);
             if (!userId) {
                 console.error("User ID not found in stored userData.");
                 return;
             }
-    
             const enquiryData = {
-                propertyid: propertyId,
-                userid: userId, 
+                customername: parsedUserData.name,
+                phone: parsedUserData.mobile,
+                email: parsedUserData.email,
                 city: propertyData.city || '',
-                state: propertyData.state || '',
-                propertytype: propertyData.propertytype,
-                cityofproperty: propertyData.propertytype,
-                mobilenumber: propertyData.propertytype,
+                propertytype: propertyData.category || '',
+                propertyid: propertyId,
+                userid: parsedUserData.id,
+                state: propertyData.city || '',
             };
-    
             // Send enquiry request
             const response = await axios.post("https://investorlands.com/api/sendenquiry", enquiryData);
-    
-            if (response.data.success) {
+
+            if (response.status === 200 && !response.data.error) {
                 alert("Enquiry submitted successfully!");
             } else {
                 alert("Failed to submit enquiry. Please try again.");
@@ -63,68 +106,168 @@ const PropertyDetails = () => {
             setLoading(false); // Hide loading indicator
         }
     };
-    
+
+    const shareProperty = async () => {
+        try {
+            const propertyUrl = `https://investorlands.com/property-details/${propertyId}`;
+
+            const message = `View my property: ${propertyUrl}`;
+
+            const result = await Share.share({
+                message: message,
+                url: propertyUrl,
+                title: "Check out this property!",
+            });
+
+            if (result.action === Share.sharedAction) {
+                console.log("Property shared successfully!");
+            } else if (result.action === Share.dismissedAction) {
+                console.log("Share dismissed.");
+            }
+        } catch (error) {
+            console.error("Error sharing property:", error);
+        }
+    };
 
     const fetchPropertyData = async () => {
         try {
             const parsedUserData = JSON.parse(await AsyncStorage.getItem('userData'));
-            setLoggedinUserId(parsedUserData.id)
-            // Fetch user data from API
+            setLoggedinUserId(parsedUserData?.id || "");
+
+            // Fetch property data from API
             const response = await axios.get(`https://investorlands.com/api/property-details/${propertyId}`);
-            // console.log('API Response:', response.data);
 
             if (response.data) {
                 const apiData = response.data.details;
                 setPropertyData(apiData);
-                // console.log('API apiData:', apiData);
 
-                // Set Profile Image, ensuring fallback to default avatar
-                if (apiData.thumbnail) {
-                    // console.log('API apiData.thumbnail:', apiData.thumbnail);
-                    setPropertyThumbnail(
-                        apiData.thumbnail.startsWith('http')
+                // ✅ Handle Thumbnail
+                setPropertyThumbnail(
+                    apiData.thumbnail
+                        ? (apiData.thumbnail.startsWith('http')
                             ? apiData.thumbnail
-                            : `https://investorlands.com/assets/images/Listings/${apiData.thumbnail}`
-                    );
-                } else {
-                    setPropertyThumbnail(images.newYork);
-                }
+                            : `https://investorlands.com/assets/images/Listings/${apiData.thumbnail}`)
+                        : images.newYork
+                );
 
-                if (apiData.gallery) {
-                    const galleryImages = JSON.parse(apiData.gallery).map((image) => ({
-                        id: Math.random().toString(36).substring(2, 11), // Generate a unique id for each image
+                // ✅ Handle Gallery Images
+                let galleryImages = [];
+                try {
+                    galleryImages = apiData.gallery ? JSON.parse(apiData.gallery).map(image => ({
+                        id: Math.random().toString(36).substring(2, 11), // Unique ID
                         image: image.startsWith('http')
                             ? image
-                            : `https://investorlands.com/${image.replace(/\\/g, '/')}`,
-                    }));
-                    setPropertyGallery(galleryImages);
+                            : `https://investorlands.com/${image.replace(/\\/g, '/')}`
+                    })) : [];
+                } catch (error) {
+                    console.error("Error parsing gallery images:", error);
                 }
+                setPropertyGallery(galleryImages);
 
+                // ✅ Handle Videos
                 let parsedVideos = [];
                 try {
-                    parsedVideos = typeof apiData.videos === 'string'
-                        ? JSON.parse(apiData.videos)
-                        : Array.isArray(apiData.videos)
-                            ? apiData.videos
-                            : [];
+                    parsedVideos = apiData.videos
+                        ? (typeof apiData.videos === 'string' ? JSON.parse(apiData.videos) : [])
+                        : [];
                 } catch (error) {
                     console.error("Error parsing videos:", error);
                 }
-                // Convert relative paths to full URLs
-                const fullVideoUrls = parsedVideos.map(video =>
-                    video.startsWith("http") ? video : `https://investorlands.com/${video}`
-                );
-                setVideoUrls(fullVideoUrls);
-                // console.log("Video URLs:", videoUrls);
+                setVideoUrls(parsedVideos.map(video =>
+                    video.startsWith('http') ? video : `https://investorlands.com/${video}`
+                ));
+
+                // ✅ Handle Amenities
+                let parsedAmenities = [];
+                try {
+                    parsedAmenities = apiData.amenties
+                        ? JSON.parse(apiData.amenties)
+                        : [];
+                } catch (error) {
+                    console.error("Error parsing amenities:", error);
+                }
+                setAmenities(parsedAmenities);
+
+                // ✅ Handle Price History
+                let priceHistory = [];
+                try {
+                    priceHistory = apiData.pricehistory
+                        ? JSON.parse(apiData.pricehistory)
+                        : [];
+                } catch (error) {
+                    console.error("Error parsing price history:", error);
+                }
+                setPriceHistory(priceHistory);
+
+
+                if (apiData.maplocations) {
+                    try {
+                        const locationData = JSON.parse(apiData.maplocations);
+                        const latitude = parseFloat(locationData.Latitude);
+                        const longitude = parseFloat(locationData.Longitude);
+
+                        if (latitude && longitude) {
+                            // Update state
+                            setCoordinates({ latitude, longitude });
+                            setRegion({
+                                latitude,
+                                longitude,
+                                latitudeDelta: 0.015,
+                                longitudeDelta: 0.0121,
+                            });
+                            // console.log("location:",region);
+
+                            // Fetch address from coordinates
+                            getAddressFromCoordinates(latitude, longitude);
+                        }
+                    } catch (error) {
+                        console.error("Error parsing map locations:", error);
+                    }
+                }
+
+                if (apiData.masterplandoc) {
+                    const fileUrl = `https://investorlands.com/assets/images/Listings/${apiData.masterplandoc}`;
+
+                    // Check if the file is a PDF or an image
+                    if (fileUrl.toLowerCase().endsWith(".pdf")) {
+                        setIsPdf(true);
+                    } else {
+                        setIsPdf(false);
+                    }
+                    setMasterPlanDocs(fileUrl);
+                    // console.log("masterplan:", masterPlanDocs);
+                }
+
+                if (apiData.pricehistory) {
+                    let priceHistory = apiData.pricehistory;
+
+                    // Ensure priceHistory is an array
+                    if (typeof priceHistory === "string") {
+                        try {
+                            priceHistory = JSON.parse(priceHistory);
+                        } catch (error) {
+                            console.error("Error parsing price history:", error);
+                            priceHistory = []; // Fallback to empty array
+                        }
+                    }
+
+                    if (Array.isArray(priceHistory)) {
+                        setPriceHistoryData(priceHistory);
+                    } else {
+                        console.error("Invalid price history data format");
+                        setPriceHistoryData([]);
+                    }
+                }
             } else {
                 console.error('Unexpected API response format:', response.data);
             }
         } catch (error) {
-            console.error('Error fetching user data:', error);
+            console.error('Error fetching property data:', error);
         } finally {
             setLoading(false);
         }
     };
+
 
     useEffect(() => {
 
@@ -189,10 +332,14 @@ const PropertyDetails = () => {
                                     className="size-7"
                                     tintColor={"#191D31"}
                                 /> */}
-                                <Image
-                                    source={icons.send}
-                                    className="size-7"
-                                />
+                                <TouchableOpacity
+                                    onPress={shareProperty}
+                                    className="flex flex-row bg-primary-200 rounded-full size-11 items-center justify-center"
+                                >
+                                    <Image source={icons.send} className="size-7" />
+                                </TouchableOpacity>
+
+
                             </View>
                         </View>
                     </View>
@@ -208,36 +355,42 @@ const PropertyDetails = () => {
                         </View>
                         <View className='flex flex-row items-center px-4 py-2 bg-primary-100 rounded-full'>
                             <Text className='text-xs font-rubik-bold'> City:</Text>
-                            <Text className='text-xs font-rubik-bold text-yellow-800'>  {propertyData.city}</Text>
+                            <Text className='text-xs font-rubik-bold text-yellow-800'> {propertyData.city}</Text>
+                        </View>
+                        <View className='flex flex-row items-center px-4 py-2 bg-primary-100 rounded-full'>
+                            <Image source={icons.area} className='size-4' />
+                            <Text className='text-black-300 text-sm font-rubik-medium ml-2'>
+                                {propertyData.squarefoot} sqft
+                            </Text>
                         </View>
                     </View>
 
-                    <View className='flex flex-row items-center mt-5'>
-                        <View className='flex flex-row items-center justify-center bg-primary-100 rounded-full size-10'>
+                    <View className='flex flex-row items-center flew-wrap'>
+                        <View className='flex flex-row  items-center justify-center bg-primary-100 rounded-full size-10'>
                             <Image source={icons.bed} className='size-4' />
                         </View>
                         <Text className='text-black-300 text-sm font-rubik-medium ml-2'>
                             {propertyData.bedroom} Bedroom
                         </Text>
+                        <View className='flex  flex-row items-center justify-center bg-primary-100 rounded-full size-10 ml-7'>
+                            <Image source={icons.bed} className='size-4' />
+                        </View>
+                        <Text className='text-black-300 text-sm font-rubik-medium ml-2'>
+                            {propertyData.floor} Floors
+                        </Text>
 
-                        <View className='flex flex-row items-center justify-center bg-primary-100 rounded-full size-10 ml-7'>
+                        <View className='flex  flex-row items-center justify-center bg-primary-100 rounded-full size-10 ml-7'>
                             <Image source={icons.bath} className='size-4' />
                         </View>
                         <Text className='text-black-300 text-sm font-rubik-medium ml-2'>
                             {propertyData.bathroom} Bathroom
                         </Text>
 
-                        <View className='flex flex-row items-center justify-center bg-primary-100 rounded-full size-10 ml-7'>
-                            <Image source={icons.area} className='size-4' />
-                        </View>
-                        <Text className='text-black-300 text-sm font-rubik-medium ml-2'>
-                            {propertyData.squarefoot} sqft
-                        </Text>
                     </View>
 
                     <View className="w-full border-t border-primary-200 pt-7 mt-5">
                         <Text className="text-black-300 text-xl font-rubik-bold">
-                            Agent
+                            Contact Us
                         </Text>
                     </View>
 
@@ -279,38 +432,36 @@ const PropertyDetails = () => {
                         <Text className='text-black-200 text-base font-rubik mt-2'>
                             {propertyData.discription}
                         </Text>
+
+                        <Text className='text-black-300 text-base font-rubik-medium mt-3'>Near by Locations:</Text>
+                        <Text className='text-black-200 text-base font-rubik mt-2'>
+                            {propertyData.nearbylocation}
+                        </Text>
+
+                        <Text className='text-black-300 text-center font-rubik-medium mt-2 bg-blue-100 flex-grow p-2 rounded-full'>
+                            Approx Rental Income: ₹{propertyData.approxrentalincome}
+                        </Text>
                     </View>
 
                     {/* facilities */}
-                    <View className='mt-7'>
-                        <Text className='text-black-300 text-xl font-rubik-bold'>Facilities</Text>
-
-                        {property?.facilities.length > 0 && (
-                            <View className="flex flex-row flex-wrap items-start justify-start mt-2 gap-5">
-                                {property.facilities.map((item, index) => (
-                                    <View
-                                        key={index}
-                                        className="flex flex-1 flex-col items-center min-w-[20%] max-w-full"
-                                    >
-                                        <View className="size-14 bg-primary-100 rounded-full flex items-center justify-center">
-                                            <Image
-                                                source={item.icon || icons.info}
-                                                className="size-6"
-                                            />
+                    {amenities && Array.isArray(amenities) && amenities.length > 0 && (
+                        <View className='mt-7'>
+                            <Text className='text-black-300 text-xl font-rubik-bold'>Amenties</Text>
+                            <View className="flex flex-row flex-wrap items-start justify-start mt-2 gap-3">
+                                {amenities.map((item, index) => (
+                                    <View key={index} className="flex items-start">
+                                        <View className="px-3 py-2 bg-blue-100 rounded-full flex flex-row items-center justify-center">
+                                            <Image source={icons.checkmark} className="size-6 me-2" />
+                                            <Text className="text-black-300 text-sm text-center font-rubik-bold capitalize">
+                                                {item}
+                                            </Text>
                                         </View>
-
-                                        <Text
-                                            numberOfLines={1}
-                                            ellipsizeMode="tail"
-                                            className="text-black-300 text-sm text-center font-rubik mt-1.5"
-                                        >
-                                            {item.title}
-                                        </Text>
                                     </View>
                                 ))}
                             </View>
-                        )}
-                    </View>
+                        </View>
+                    )}
+
 
                     {/* propertyGallery */}
                     {propertyGallery && propertyGallery.length > 0 ? (
@@ -367,17 +518,58 @@ const PropertyDetails = () => {
                         <Text className="text-black-300 text-xl font-rubik-bold">
                             Location
                         </Text>
-                        <View className="flex flex-row items-center justify-start mt-4 gap-2">
+                        <View className="flex flex-row items-center justify-start my-4 gap-2">
                             <Image source={icons.location} className="w-7 h-7" />
                             <Text className="text-black-200 text-sm font-rubik-medium">
                                 {propertyData.address}
                             </Text>
                         </View>
 
-                        <Image
-                            source={images.map}
-                            className="h-52 w-full mt-5 rounded-xl"
-                        />
+                        <View>
+                            <MapView
+                                style={{ height: 150, borderRadius: 10 }}
+                                region={region}
+                                initialRegion={region}
+                            >
+                                {region && <Marker coordinate={coordinates} />}
+                            </MapView>
+
+                            {/* 🔹 Show the Address Below the Map */}
+                            {address ? (
+                                <Text className="text-center text-black-500 mt-2 font-bold">
+                                    📍 {address}
+                                </Text>
+                            ) : (
+                                <Text className="text-center text-gray-500 mt-2">Fetching address...</Text>
+                            )}
+                        </View>
+
+                    </View>
+
+
+                    <View className="mt-7">
+                        <Text className="text-black-300 text-xl font-rubik-bold">
+                            Documents
+                        </Text>
+                        <View className="mt-4">
+                            <View className="mt-4">
+                                <MasterPlanList masterPlanDocs={masterPlanDocs} />
+                            </View>
+
+                        </View>
+
+                    </View>
+                    <View className="mt-7">
+                        <Text className="text-black-300 text-xl font-rubik-bold">
+                            Price History
+                        </Text>
+                        <View className="mt-4">
+                            <View className="mt-4">
+                                <PriceHistoryChart priceHistoryData={priceHistoryData} />
+                            </View>
+
+                        </View>
+
                     </View>
 
 
@@ -395,7 +587,7 @@ const PropertyDetails = () => {
                             numberOfLines={1}
                             className="text-yellow-800 text-start text-2xl font-rubik-bold"
                         >
-                            $54321
+                            ₹{propertyData.price}
                         </Text>
                     </View>
 

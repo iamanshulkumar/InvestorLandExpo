@@ -311,8 +311,6 @@ const Addproperty = () => {
             const userData = await AsyncStorage.getItem('userData');
             const userToken = await AsyncStorage.getItem('userToken');
 
-            // console.log("Logged-in userToken:", userToken);
-
             return {
                 userData: userData ? JSON.parse(userData) : null,
                 userToken: userToken ? userToken : null
